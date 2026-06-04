@@ -10,6 +10,7 @@ on:
       - "workers/**"
       - "infra/**"
       - "scripts/**"
+      - "deploy-runtime/macstudio/glimpse-monitor/**"
       - ".github/workflows/app-services.yml"
   workflow_dispatch:
     inputs:
@@ -66,7 +67,7 @@ jobs:
               targets="all"
             else
               changed_files="$(git diff --name-only "$before" "$GITHUB_SHA")"
-              if printf '%s\n' "$changed_files" | grep -Eq '^(infra|scripts)/|^\.github/workflows/app-services\.yml$'; then
+              if printf '%s\n' "$changed_files" | grep -Eq '^(infra|scripts)/|^deploy-runtime/macstudio/glimpse-monitor/|^\.github/workflows/app-services\.yml$'; then
                 targets="all"
               else
                 printf '%s\n' "$changed_files" | grep -q '^dashboard/' && add_target dashboard

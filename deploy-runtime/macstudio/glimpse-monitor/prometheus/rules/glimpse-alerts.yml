@@ -1,0 +1,85 @@
+groups:
+  - name: glimpse-agent
+    rules:
+      - alert: GlimpseAgentDown
+        expr: up{job="glimpse-agent"} == 0
+        for: 1m
+        labels:
+          severity: critical
+        annotations:
+          summary: "Glimpse monitor agent is down"
+          description: "Prometheus cannot scrape the Glimpse monitor agent for more than 1 minute."
+
+      - alert: GlimpseHighCpuLoad
+        expr: glimpse_host_cpu_load_percent > 90
+        for: 5m
+        labels:
+          severity: warning
+        annotations:
+          summary: "High CPU load on {{ $labels.device_id }}"
+          description: "CPU load has been above 90 percent for more than 5 minutes."
+
+      - alert: GlimpseHighMemoryUsage
+        expr: glimpse_host_memory_used_percent > 90
+        for: 5m
+        labels:
+          severity: warning
+        annotations:
+          summary: "High memory usage on {{ $labels.device_id }}"
+          description: "Memory usage has been above 90 percent for more than 5 minutes."
+
+      - alert: GlimpseHighDiskUsage
+        expr: glimpse_host_disk_used_percent > 85
+        for: 10m
+        labels:
+          severity: warning
+        annotations:
+          summary: "High disk usage on {{ $labels.device_id }}"
+          description: "Disk usage has been above 85 percent for more than 10 minutes."
+
+      - alert: GlimpseConfiguredServiceDown
+        expr: glimpse_service_up == 0
+        for: 2m
+        labels:
+          severity: warning
+        annotations:
+          summary: "Configured service is down on {{ $labels.device_id }}"
+          description: "{{ $labels.service_name }} has not been detected as running for more than 2 minutes."
+
+  - name: glimpse-infra
+    rules:
+      - alert: GlimpsePostgresExporterDown
+        expr: up{job="postgres"} == 0
+        for: 2m
+        labels:
+          severity: warning
+        annotations:
+          summary: "Postgres exporter is down"
+          description: "Prometheus cannot scrape postgres-exporter."
+
+      - alert: GlimpseRedisExporterDown
+        expr: up{job="redis"} == 0
+        for: 2m
+        labels:
+          severity: warning
+        annotations:
+          summary: "Redis exporter is down"
+          description: "Prometheus cannot scrape redis-exporter."
+
+      - alert: GlimpseKafkaExporterDown
+        expr: up{job="kafka"} == 0
+        for: 2m
+        labels:
+          severity: warning
+        annotations:
+          summary: "Kafka exporter is down"
+          description: "Prometheus cannot scrape kafka-exporter."
+
+      - alert: GlimpseKafkaConsumerLag
+        expr: kafka_consumergroup_lag > 1000
+        for: 5m
+        labels:
+          severity: warning
+        annotations:
+          summary: "Kafka consumer lag is high"
+          description: "Consumer group {{ $labels.consumergroup }} has lag over 1000 for more than 5 minutes."

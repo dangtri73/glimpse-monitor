@@ -8,6 +8,7 @@ on:
       - "v*"
     paths:
       - "nginx-docker/**"
+      - "deploy-runtime/dev-server/nginx-docker/**"
       - ".github/workflows/nginx-docker.yml"
   workflow_dispatch:
 
@@ -163,54 +164,24 @@ jobs:
             echo "Set GitHub variable DEV_NGINX_DOCKER_DIR=/Users/tri/nginx-docker or create/migrate that directory on the dev server." >&2
             exit 1
           fi
-          mkdir -p "$REMOTE_DIR/scripts"
+          mkdir -p "$REMOTE_DIR/scripts" "$REMOTE_DIR/nginx/generated"
           REMOTE_PREP
 
           scp -i ~/.ssh/id_ed25519 -P "$DEV_SSH_PORT" \
-            scripts/certs.sh "$DEV_SSH_USER@$DEV_SSH_HOST:$DEV_NGINX_DOCKER_DIR/scripts/certs.sh"
+            ../deploy-runtime/dev-server/nginx-docker/docker-compose.yml \
+            ../deploy-runtime/dev-server/nginx-docker/.env.example \
+            ../deploy-runtime/dev-server/nginx-docker/deploy.sh \
+            "$DEV_SSH_USER@$DEV_SSH_HOST:$DEV_NGINX_DOCKER_DIR/"
+
+          scp -i ~/.ssh/id_ed25519 -P "$DEV_SSH_PORT" \
+            ../deploy-runtime/dev-server/nginx-docker/scripts/certs.sh \
+            "$DEV_SSH_USER@$DEV_SSH_HOST:$DEV_NGINX_DOCKER_DIR/scripts/certs.sh"
 
           ssh -i ~/.ssh/id_ed25519 -p "$DEV_SSH_PORT" "$DEV_SSH_USER@$DEV_SSH_HOST" \
             "DEPLOY_IMAGE='$deploy_image' REMOTE_DIR='$DEV_NGINX_DOCKER_DIR' sh -s" <<'REMOTE'
           set -eu
-          export PATH="/opt/homebrew/bin:/usr/local/bin:/opt/local/bin:/usr/bin:/bin:/usr/sbin:/sbin:$PATH"
-
-          compose() {
-            if command -v docker-compose >/dev/null 2>&1; then
-              docker-compose "$@"
-            elif docker compose version >/dev/null 2>&1; then
-              docker compose "$@"
-            else
-              echo "ERROR: docker-compose or docker compose is required on the dev server." >&2
-              echo "PATH: $PATH" >&2
-              exit 1
-            fi
-          }
-
           cd "$REMOTE_DIR"
+          chmod +x deploy.sh
           chmod +x scripts/certs.sh
-
-          if [ ! -f .env ]; then
-            cp .env.example .env
-          fi
-
-          if grep -q '^NGINX_IMAGE=' .env; then
-            sed -i.bak "s|^NGINX_IMAGE=.*|NGINX_IMAGE=$DEPLOY_IMAGE|" .env
-          else
-            printf '\nNGINX_IMAGE=%s\n' "$DEPLOY_IMAGE" >> .env
-          fi
-
-          if grep -q '^NGINX_TEMPLATE_MODE=' .env; then
-            true
-          elif grep -q '^NGINX_TEMPLATE_DIR=.*templates-http' .env; then
-            printf '\nNGINX_TEMPLATE_MODE=http\n' >> .env
-          elif grep -q '^NGINX_TEMPLATE_DIR=.*templates-ssl' .env; then
-            printf '\nNGINX_TEMPLATE_MODE=ssl\n' >> .env
-          else
-            printf '\nNGINX_TEMPLATE_MODE=dev-ssl\n' >> .env
-          fi
-
-          compose pull nginx
-          compose up -d --no-build nginx
-
-          docker exec glimpse-nginx nginx -t
+          ./deploy.sh deploy "$DEPLOY_IMAGE"
           REMOTE

@@ -17,6 +17,7 @@ Optional env:
   COMPOSE_FILE=infra/docker-compose.yml
   ENV_FILE=infra/.env
   RUNTIME_DIR=/Users/admin/glimpse-monitor-runtime
+  RUNTIME_SOURCE_DIR=deploy-runtime/macstudio/glimpse-monitor
 
 Modes:
   dashboard   Pull/run dashboard only.
@@ -65,12 +66,22 @@ prepare_runtime_dir() {
     *) RUNTIME_DIR="$HOME/$RUNTIME_DIR" ;;
   esac
 
-  mkdir -p "$RUNTIME_DIR/sql"
-  cp "$PROJECT_DIR/infra/docker-compose.yml" "$RUNTIME_DIR/docker-compose.yml"
-  cp "$PROJECT_DIR/docs/sql/monitor_schema.sql" "$RUNTIME_DIR/sql/monitor_schema.sql"
+  RUNTIME_SOURCE_DIR="${RUNTIME_SOURCE_DIR:-$PROJECT_DIR/deploy-runtime/macstudio/glimpse-monitor}"
+  case "$RUNTIME_SOURCE_DIR" in
+    /*) ;;
+    *) RUNTIME_SOURCE_DIR="$PROJECT_DIR/$RUNTIME_SOURCE_DIR" ;;
+  esac
+
+  if [ ! -d "$RUNTIME_SOURCE_DIR" ]; then
+    echo "ERROR: runtime source directory does not exist: $RUNTIME_SOURCE_DIR" >&2
+    exit 1
+  fi
+
+  mkdir -p "$RUNTIME_DIR"
+  cp -R "$RUNTIME_SOURCE_DIR"/. "$RUNTIME_DIR"/
 
   if [ ! -f "$RUNTIME_DIR/.env" ]; then
-    cp "$PROJECT_DIR/infra/.env.example" "$RUNTIME_DIR/.env"
+    cp "$RUNTIME_DIR/.env.example" "$RUNTIME_DIR/.env"
     echo "Created runtime env file: $RUNTIME_DIR/.env"
   fi
 
@@ -118,6 +129,12 @@ compose() {
     . "$env_file"
     set +a
   fi
+  export DOCKERHUB_NAMESPACE="$NAMESPACE"
+  export IMAGE_PREFIX="$IMAGE_PREFIX"
+  export IMAGE_TAG="$IMAGE_TAG"
+  export DASHBOARD_IMAGE="$NAMESPACE/$IMAGE_PREFIX-dashboard:$IMAGE_TAG"
+  export AI_SERVICE_IMAGE="$NAMESPACE/$IMAGE_PREFIX-ai-service:$IMAGE_TAG"
+  export WORKERS_IMAGE="$NAMESPACE/$IMAGE_PREFIX-workers:$IMAGE_TAG"
   if docker compose version >/dev/null 2>&1; then
     docker compose -f "$compose_file" "$@"
   elif command -v docker-compose >/dev/null 2>&1; then
