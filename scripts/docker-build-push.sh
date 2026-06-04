@@ -75,11 +75,16 @@ build_one() {
 
   echo "Building $service -> $image:$IMAGE_TAG ($DOCKER_PLATFORM)"
   # shellcheck disable=SC2086
-  docker buildx build \
+  docker build \
+    --pull \
     --platform "$DOCKER_PLATFORM" \
-    --push \
     $tags \
     "$PROJECT_DIR/$context"
+
+  docker push "$image:$IMAGE_TAG"
+  if [ "$PUSH_LATEST" = "true" ] && [ "$IMAGE_TAG" != "latest" ]; then
+    docker push "$image:latest"
+  fi
 }
 
 case "$SERVICE" in
