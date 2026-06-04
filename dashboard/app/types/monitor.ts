@@ -141,6 +141,8 @@ export type DomainGatewayTarget = {
   targetHost: string;
   targetPort: number;
   protocol: string;
+  ownerTeamId?: string | null;
+  allowedTeamIds?: string[];
 };
 
 export type DomainGatewayPolicy = {

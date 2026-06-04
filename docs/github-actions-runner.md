@@ -1,0 +1,165 @@
+# GitHub Actions Runner Commands
+
+Useful commands for the Mac Studio self-hosted GitHub Actions runner.
+
+Assumed runner directory:
+
+```bash
+cd ~/actions-runner
+```
+
+## Service Mode
+
+Use service mode for normal operation. It keeps the runner alive after the terminal closes.
+
+Check status:
+
+```bash
+./svc.sh status
+```
+
+Install service:
+
+```bash
+./svc.sh install
+```
+
+Start service:
+
+```bash
+./svc.sh start
+```
+
+Stop service:
+
+```bash
+./svc.sh stop
+```
+
+Restart service:
+
+```bash
+./svc.sh stop
+./svc.sh start
+./svc.sh status
+```
+
+If the service command asks for root permission, use `sudo` for the same command:
+
+```bash
+sudo ./svc.sh install
+sudo ./svc.sh start
+sudo ./svc.sh status
+```
+
+Run the service as the same macOS user that can run Docker.
+
+## Foreground Mode
+
+Use foreground mode only for quick debugging:
+
+```bash
+./run.sh
+```
+
+Stop foreground mode:
+
+```txt
+Ctrl+C
+```
+
+Do not run `./run.sh` while the service is already running for the same runner registration.
+
+## Runner Logs
+
+Find runner logs:
+
+```bash
+find ~/Library/Logs -iname "*runner*" -type f
+```
+
+Follow runner logs:
+
+```bash
+tail -f ~/Library/Logs/actions.runner.dangtri73-glimpse-monitor.macstudio/*.log
+```
+
+If the exact path does not exist, use the file path returned by `find`.
+
+GitHub has the best step-by-step job logs:
+
+```txt
+GitHub repo -> Actions -> workflow run -> build-and-deploy
+```
+
+## Docker Checks
+
+Run these from the same Mac Studio user that runs the runner:
+
+```bash
+docker version
+docker compose version
+docker run --rm hello-world
+```
+
+Test Nginx image build:
+
+```bash
+cd /Users/vutri/Desktop/projects/Glimpse/glimpse-monitor/nginx-docker
+docker pull nginx:1.27-alpine
+docker build --pull --platform linux/arm64 -t glimpse-nginx-test .
+docker run --rm \
+  -e NGINX_TEMPLATE_MODE=http \
+  -e DEFAULT_UPSTREAM=http://127.0.0.1:11435 \
+  glimpse-nginx-test nginx -t
+```
+
+If Docker exits with code `130`, the Docker process was interrupted. Check Docker Desktop or Colima, then rerun the build.
+
+## Workflow Reruns
+
+Manual app-service deploy:
+
+```txt
+GitHub repo -> Actions -> Build and deploy app services -> Run workflow
+```
+
+Choose one:
+
+```txt
+all
+dashboard
+ai-service
+workers
+```
+
+Manual Nginx deploy:
+
+```txt
+GitHub repo -> Actions -> Build and deploy Nginx -> Run workflow
+```
+
+## Repo Commands
+
+On Mac Studio:
+
+```bash
+cd /Users/vutri/Desktop/projects/Glimpse/glimpse-monitor
+git pull --ff-only
+git status
+```
+
+On the dev server for Nginx:
+
+```bash
+cd /Users/tri/nginx-docker
+docker compose ps
+docker logs --tail=80 glimpse-nginx
+docker exec glimpse-nginx nginx -t
+```
+
+This path should match the GitHub Actions variable:
+
+```txt
+DEV_NGINX_DOCKER_DIR=/Users/tri/nginx-docker
+```

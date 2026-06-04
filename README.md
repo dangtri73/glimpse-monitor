@@ -65,6 +65,8 @@ This repo uses service-level path filters:
 
 Both workflows use the Mac Studio self-hosted runner labels `self-hosted`, `macOS`, `ARM64`, and `macstudio`.
 
+Common runner commands are in `docs/github-actions-runner.md`.
+
 ## Recommendation
 
 Use Python now for fast iteration and AI/LangGraph integration. Use Go later for the privileged gateway daemon once service control and Nginx port mapping become production features.
@@ -81,7 +83,9 @@ Use Python now for fast iteration and AI/LangGraph integration. Use Go later for
 - `docs/reliability-backup.md`: Mac Studio reliability limits, restart behavior, backup priorities, and recovery plan.
 - `docs/improvements.md`: completed improvements, missing work, risks, and recommended implementation order.
 - `docs/start-stop.md`: local start, stop, restart, reset, health check, and SSH tunnel commands.
+- `docs/github-actions-runner.md`: Mac Studio GitHub Actions runner service, logs, Docker checks, and rerun commands.
 - `docs/nginx-docker-gateway.md`: dev-server Docker Nginx gateway usage, cert copy, Cloudflare SSL, and curl tests.
+- `docs/nginx-cert-management.md`: dev-server certificate add, update, remove, validate, and reload workflow.
 - `docs/dockerhub-deploy.md`: Docker Hub build/push scripts and Mac Studio pull/run deployment.
 - `docs/ai-tools.md`: LangGraph tool plan.
 - `docs/sql/monitor_schema.sql`: baseline monitor schema.

@@ -7,6 +7,7 @@ import shutil
 from copy import deepcopy
 from pathlib import Path
 from typing import Any
+from urllib.parse import urlsplit
 
 from agent_common import coerce_int, config_path, load_config, now_ms, run_command, run_text, save_config, slug, utc_now
 
@@ -15,7 +16,7 @@ DEFAULT_NGINX_GENERATED_CONF_PATH = (
     Path(__file__).resolve().parent.parent / "nginx-docker" / "nginx" / "generated" / "domain-maps.conf"
 )
 DOMAIN_LABEL_RE = re.compile(r"^[a-z0-9](?:[a-z0-9-]{0,61}[a-z0-9])?$")
-UPSTREAM_RE = re.compile(r"^https?://[A-Za-z0-9_.:-]+$")
+SAFE_UPSTREAM_HOST_RE = re.compile(r"^[A-Za-z0-9_.:-]+$")
 
 
 class DomainGatewayManager:
@@ -30,8 +31,11 @@ class DomainGatewayManager:
                 "targetHost": target.get("targetHost"),
                 "targetPort": target.get("targetPort"),
                 "protocol": target.get("protocol", "http"),
+                "ownerTeamId": target.get("ownerTeamId"),
+                "allowedTeamIds": target.get("allowedTeamIds", []),
             }
             for target in gateway_config.get("targets", [])
+            if target.get("enabled", True)
         ]
 
         return {
@@ -58,6 +62,10 @@ class DomainGatewayManager:
             int((gateway_config.get("allowedPublicPorts") or [80])[0]),
         )
         protocol = str(payload.get("protocol") or target.get("protocol") or "http").lower()
+        owner_team_id = str(
+            payload.get("ownerTeamId") or payload.get("teamId") or target.get("ownerTeamId") or ""
+        ).strip()
+        upstream = target_upstream(target)
         now = utc_now()
         token = f"glimpse-domain={secrets.token_urlsafe(18)}"
 
@@ -70,11 +78,11 @@ class DomainGatewayManager:
             "targetDeviceId": target.get("targetDeviceId"),
             "targetHost": target.get("targetHost"),
             "targetPort": int(target.get("targetPort", 0)),
-            "upstream": target.get("upstream")
-            or f"{target.get('protocol', 'http')}://{target.get('targetHost')}:{target.get('targetPort')}",
+            "upstream": upstream,
             "protocol": protocol,
             "status": "draft",
             "authRequired": bool(payload.get("authRequired", True)),
+            "ownerTeamId": owner_team_id or None,
             "createdAt": now,
             "updatedAt": now,
             "createdBy": actor,
@@ -313,12 +321,12 @@ class DomainGatewayManager:
             {
                 "id": "target",
                 "ok": target is not None,
-                "message": "Target service is allowed." if target else "Target service is not in the allowlist.",
+                "message": "Target service is enabled and allowed." if target else "Target service is not enabled in the allowlist.",
             }
         )
 
         upstream = str(mapping.get("upstream") or "")
-        upstream_ok = bool(UPSTREAM_RE.match(upstream))
+        upstream_ok = valid_upstream(upstream)
         checks.append(
             {
                 "id": "upstream",
@@ -326,6 +334,47 @@ class DomainGatewayManager:
                 "message": "Target upstream is safe for Nginx generation."
                 if upstream_ok
                 else "Target upstream must be an http/https service URL without a path.",
+            }
+        )
+
+        canonical_target_ok = bool(target and mapping_uses_target(mapping, target))
+        checks.append(
+            {
+                "id": "target-canonical",
+                "ok": canonical_target_ok,
+                "message": "Mapping uses the configured target host, port, protocol, and upstream."
+                if canonical_target_ok
+                else "Mapping target fields must match the selected target allowlist entry.",
+            }
+        )
+
+        allowed_target_hosts = [
+            normalize_target_host(host)
+            for host in gateway_config.get("allowedTargetHosts", [])
+            if normalize_target_host(host)
+        ]
+        target_host = normalize_target_host(target.get("targetHost") if target else mapping.get("targetHost"))
+        host_ok = not allowed_target_hosts or target_host in allowed_target_hosts
+        checks.append(
+            {
+                "id": "target-host",
+                "ok": host_ok,
+                "message": "Target host is reachable through the gateway allowlist."
+                if host_ok
+                else f"Target host must be one of {allowed_target_hosts}.",
+            }
+        )
+
+        allowed_team_ids = {
+            str(team_id).strip() for team_id in (target or {}).get("allowedTeamIds", []) if str(team_id).strip()
+        }
+        owner_team_id = str(mapping.get("ownerTeamId") or "").strip()
+        team_ok = not allowed_team_ids or owner_team_id in allowed_team_ids
+        checks.append(
+            {
+                "id": "target-team",
+                "ok": team_ok,
+                "message": "Team is allowed to use this target." if team_ok else "Team is not allowed to use this target.",
             }
         )
 
@@ -367,7 +416,7 @@ class DomainGatewayManager:
             public_host = normalize_public_host(mapping.get("publicHost"))
             public_port = coerce_int(mapping.get("publicPort"), 80)
             upstream = str(mapping.get("upstream") or "")
-            if not valid_domain(public_host) or not UPSTREAM_RE.match(upstream):
+            if not valid_domain(public_host) or not valid_upstream(upstream):
                 continue
 
             lines.extend(
@@ -398,7 +447,7 @@ class DomainGatewayManager:
         targets: dict[str, dict[str, Any]] = {}
         for target in config.get("domainGateway", {}).get("targets", []):
             target_id = str(target.get("id") or "").strip()
-            if target_id:
+            if target_id and target.get("enabled", True):
                 targets[target_id] = target
         return targets
 
@@ -516,3 +565,47 @@ def valid_domain(host: str) -> bool:
     if host in {"localhost", "127.0.0.1", "0.0.0.0"} or host.endswith(".local"):
         return False
     return all(DOMAIN_LABEL_RE.match(label) for label in host.split("."))
+
+
+def normalize_target_host(value: Any) -> str:
+    return str(value or "").strip().lower().rstrip(".")
+
+
+def valid_upstream(value: str) -> bool:
+    try:
+        parsed = urlsplit(value)
+    except ValueError:
+        return False
+
+    if parsed.scheme not in {"http", "https"}:
+        return False
+    if parsed.username or parsed.password or parsed.path not in {"", "/"} or parsed.query or parsed.fragment:
+        return False
+    if not parsed.hostname or not SAFE_UPSTREAM_HOST_RE.match(parsed.netloc):
+        return False
+    if parsed.hostname in {"localhost", "127.0.0.1", "0.0.0.0"}:
+        return False
+
+    try:
+        port = parsed.port
+    except ValueError:
+        return False
+    return port is None or 1 <= port <= 65535
+
+
+def target_upstream(target: dict[str, Any]) -> str:
+    explicit = str(target.get("upstream") or "").strip()
+    if explicit:
+        return explicit
+    protocol = str(target.get("protocol") or "http").lower()
+    return f"{protocol}://{target.get('targetHost')}:{target.get('targetPort')}"
+
+
+def mapping_uses_target(mapping: dict[str, Any], target: dict[str, Any]) -> bool:
+    return (
+        str(mapping.get("targetDeviceId") or "") == str(target.get("targetDeviceId") or "")
+        and normalize_target_host(mapping.get("targetHost")) == normalize_target_host(target.get("targetHost"))
+        and coerce_int(mapping.get("targetPort"), 0) == coerce_int(target.get("targetPort"), -1)
+        and str(mapping.get("protocol") or "").lower() == str(target.get("protocol") or "http").lower()
+        and str(mapping.get("upstream") or "") == target_upstream(target)
+    )

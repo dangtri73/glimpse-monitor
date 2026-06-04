@@ -34,16 +34,6 @@ jobs:
           echo "SHORT_SHA=$short_sha" >> "$GITHUB_ENV"
           echo "IMAGE=$image" >> "$GITHUB_ENV"
 
-      - name: Build and validate Nginx image
-        run: |
-          set -eu
-          test_image="glimpse-nginx-ci:${SHORT_SHA}"
-          docker build --pull --platform "$DOCKER_PLATFORM" -t "$test_image" .
-          docker run --rm \
-            -e NGINX_TEMPLATE_MODE=http \
-            -e DEFAULT_UPSTREAM=http://127.0.0.1:11435 \
-            "$test_image" nginx -t
-
       - name: Log in to Docker Hub
         env:
           DOCKERHUB_USERNAME: ${{ secrets.DOCKERHUB_USERNAME }}
@@ -54,10 +44,18 @@ jobs:
           test -n "$DOCKERHUB_TOKEN"
           echo "$DOCKERHUB_TOKEN" | docker login -u "$DOCKERHUB_USERNAME" --password-stdin
 
-      - name: Push Docker Hub image
+      - name: Build and validate Nginx image
         run: |
           set -eu
           docker build --pull --platform "$DOCKER_PLATFORM" -t "$IMAGE:$SHORT_SHA" .
+          docker run --rm \
+            -e NGINX_TEMPLATE_MODE=http \
+            -e DEFAULT_UPSTREAM=http://127.0.0.1:11435 \
+            "$IMAGE:$SHORT_SHA" nginx -t
+
+      - name: Push Docker Hub image
+        run: |
+          set -eu
           docker push "$IMAGE:$SHORT_SHA"
 
           if [ "$GITHUB_REF" = "refs/heads/main" ]; then
@@ -77,7 +75,7 @@ jobs:
           DEV_SSH_PORT: ${{ vars.DEV_SSH_PORT || '22' }}
           DEV_SSH_USER: ${{ secrets.DEV_SSH_USER }}
           DEV_SSH_PRIVATE_KEY: ${{ secrets.DEV_SSH_PRIVATE_KEY }}
-          DEV_NGINX_DOCKER_DIR: ${{ vars.DEV_NGINX_DOCKER_DIR || '/Users/vutri/Desktop/projects/Glimpse/glimpse-monitor/nginx-docker' }}
+          DEV_NGINX_DOCKER_DIR: ${{ vars.DEV_NGINX_DOCKER_DIR || '/Users/tri/nginx-docker' }}
         run: |
           set -eu
           test -n "$DEV_SSH_HOST"
@@ -93,10 +91,20 @@ jobs:
           deploy_image="$IMAGE:$SHORT_SHA"
 
           ssh -i ~/.ssh/id_ed25519 -p "$DEV_SSH_PORT" "$DEV_SSH_USER@$DEV_SSH_HOST" \
+            "REMOTE_DIR='$DEV_NGINX_DOCKER_DIR' sh -s" <<'REMOTE_PREP'
+          set -eu
+          mkdir -p "$REMOTE_DIR/scripts"
+          REMOTE_PREP
+
+          scp -i ~/.ssh/id_ed25519 -P "$DEV_SSH_PORT" \
+            scripts/certs.sh "$DEV_SSH_USER@$DEV_SSH_HOST:$DEV_NGINX_DOCKER_DIR/scripts/certs.sh"
+
+          ssh -i ~/.ssh/id_ed25519 -p "$DEV_SSH_PORT" "$DEV_SSH_USER@$DEV_SSH_HOST" \
             "DEPLOY_IMAGE='$deploy_image' REMOTE_DIR='$DEV_NGINX_DOCKER_DIR' sh -s" <<'REMOTE'
           set -eu
 
           cd "$REMOTE_DIR"
+          chmod +x scripts/certs.sh
 
           if [ ! -f .env ]; then
             cp .env.example .env

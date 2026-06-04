@@ -207,7 +207,7 @@ services:
       KAFKA_GATEWAY_REQUEST_TOPIC: ${KAFKA_GATEWAY_REQUEST_TOPIC:-gateway.requests.raw}
       KAFKA_PUBLISH_TIMEOUT_MS: ${KAFKA_PUBLISH_TIMEOUT_MS:-75}
     ports:
-      - "127.0.0.1:${DASHBOARD_PORT:-3000}:3000"
+      - "${DASHBOARD_BIND_HOST:-127.0.0.1}:${DASHBOARD_PORT:-3000}:3000"
     networks:
       - monitor
     logging: *default-logging
@@ -225,7 +225,7 @@ services:
       OLLAMA_MODEL: ${OLLAMA_MODEL:-gemma3:270m}
       OLLAMA_TIMEOUT_SECONDS: ${OLLAMA_TIMEOUT_SECONDS:-60}
     ports:
-      - "127.0.0.1:${AI_SERVICE_HOST_PORT:-8771}:8770"
+      - "${AI_SERVICE_BIND_HOST:-127.0.0.1}:${AI_SERVICE_HOST_PORT:-8771}:8770"
     networks:
       - monitor
     logging: *default-logging

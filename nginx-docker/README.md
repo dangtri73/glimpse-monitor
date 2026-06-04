@@ -8,7 +8,7 @@ The Compose stack can run a Docker Hub image built from this repo:
 NGINX_IMAGE=dangtri73/glimpse-nginx:latest
 ```
 
-For GitHub Actions from the Mac Studio runner in the monorepo, see `GITHUB_ACTIONS_MACSTUDIO.md`.
+For GitHub Actions, use the monorepo workflows in `../.github/workflows/`.
 
 ## What This Exposes
 
@@ -17,6 +17,12 @@ For GitHub Actions from the Mac Studio runner in the monorepo, see `GITHUB_ACTIO
 - `www.glimpse-go.site`
 
 All base domains proxy to `DEFAULT_UPSTREAM`. Use the mixed template while only `dev.api.hftvn.com` has a certificate, then switch to full SSL mode after `glimpse-go.site` certificates exist. On the dev server, set the upstream to a service endpoint reachable from the gateway, usually a Mac Studio LAN address such as `http://192.168.1.3:<port>`.
+
+The current dev-server runtime directory is:
+
+```txt
+/Users/tri/nginx-docker
+```
 
 ## Before Starting
 
@@ -41,13 +47,10 @@ If either command prints an Nginx process, stop it before starting this stack.
 Start Docker Nginx only:
 
 ```bash
-cd glimpse-monitor/nginx-docker
+cd /Users/tri/nginx-docker
 cp .env.example .env
-mkdir -p certs/letsencrypt/live/dev.api.hftvn.com
-sudo cp -L /etc/letsencrypt/live/dev.api.hftvn.com/fullchain.pem certs/letsencrypt/live/dev.api.hftvn.com/fullchain.pem
-sudo cp -L /etc/letsencrypt/live/dev.api.hftvn.com/privkey.pem certs/letsencrypt/live/dev.api.hftvn.com/privkey.pem
-sudo chown -R "$(id -u):$(id -g)" certs/letsencrypt
-chmod 600 certs/letsencrypt/live/dev.api.hftvn.com/privkey.pem
+./scripts/certs.sh sync-letsencrypt dev.api.hftvn.com
+./scripts/certs.sh check letsencrypt dev.api.hftvn.com
 nano .env
 docker-compose up -d
 docker exec glimpse-nginx nginx -t
@@ -114,13 +117,13 @@ glimpse-go.site
 *.glimpse-go.site
 ```
 
-Save it on the dev server:
+Save it temporarily on the dev server, then install it with:
 
 ```bash
-mkdir -p certs/cloudflare/glimpse-go.site
-nano certs/cloudflare/glimpse-go.site/fullchain.pem
-nano certs/cloudflare/glimpse-go.site/privkey.pem
-chmod 600 certs/cloudflare/glimpse-go.site/privkey.pem
+./scripts/certs.sh install cloudflare glimpse-go.site \
+  /tmp/glimpse-go.site.fullchain.pem \
+  /tmp/glimpse-go.site.privkey.pem
+./scripts/certs.sh check cloudflare glimpse-go.site
 ```
 
 Then enable full SSL mode and restart:
@@ -129,8 +132,7 @@ Then enable full SSL mode and restart:
 nano .env
 # set NGINX_TEMPLATE_MODE=ssl
 docker-compose up -d
-docker exec glimpse-nginx nginx -t
-docker exec glimpse-nginx nginx -s reload
+./scripts/certs.sh reload
 ```
 
 ## Member Domain Mappings

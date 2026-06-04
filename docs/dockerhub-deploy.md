@@ -76,9 +76,11 @@ IMAGE_TAG=local-latest
 IMAGE_PREFIX=glimpse-monitor
 
 DASHBOARD_PORT=3000
+DASHBOARD_BIND_HOST=127.0.0.1
 MONITOR_AGENT_URL=http://host.docker.internal:8765
 MONITOR_AGENT_ADMIN_TOKEN=
 AI_SERVICE_HOST_PORT=8771
+AI_SERVICE_BIND_HOST=127.0.0.1
 OLLAMA_BASE_URL=http://host.docker.internal:11434
 OLLAMA_MODEL=gemma3:270m
 OLLAMA_TIMEOUT_SECONDS=60
@@ -182,6 +184,15 @@ IMAGE_TAG=local-latest \
 ## Public Gateway Routing
 
 Keep Docker ports bound to `127.0.0.1` and let Nginx expose only the routes you need.
+
+When the Nginx gateway runs on the separate dev server and proxies to Mac Studio over LAN, the target service must listen on the Mac Studio LAN interface. For example:
+
+```env
+DASHBOARD_BIND_HOST=192.168.1.3
+AI_SERVICE_BIND_HOST=192.168.1.3
+```
+
+Leave other infrastructure ports on `127.0.0.1`.
 
 Example public routes:
 

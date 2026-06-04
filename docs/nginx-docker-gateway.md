@@ -28,6 +28,12 @@ DEFAULT_UPSTREAM=http://192.168.1.3:11435
 
 Change `DEFAULT_UPSTREAM` in `glimpse-monitor/nginx-docker/.env` when the gateway should proxy to a different Mac Studio service.
 
+The examples below assume the current dev-server runtime directory:
+
+```txt
+/Users/tri/nginx-docker
+```
+
 ## Template Modes
 
 `nginx-docker` has three template modes:
@@ -69,7 +75,7 @@ No output means the ports are free.
 Run from the dev server:
 
 ```bash
-cd glimpse-monitor/nginx-docker
+cd /Users/tri/nginx-docker
 cp .env.example .env
 nano .env
 ```
@@ -100,13 +106,9 @@ DEFAULT_UPSTREAM=http://192.168.1.3:11435
 The Let's Encrypt files under `/etc/letsencrypt/live/...` are symlinks. Use `cp -L` so Docker gets real files.
 
 ```bash
-cd glimpse-monitor/nginx-docker
-
-mkdir -p certs/letsencrypt/live/dev.api.hftvn.com
-sudo cp -L /etc/letsencrypt/live/dev.api.hftvn.com/fullchain.pem certs/letsencrypt/live/dev.api.hftvn.com/fullchain.pem
-sudo cp -L /etc/letsencrypt/live/dev.api.hftvn.com/privkey.pem certs/letsencrypt/live/dev.api.hftvn.com/privkey.pem
-sudo chown -R "$(id -u):$(id -g)" certs/letsencrypt
-chmod 600 certs/letsencrypt/live/dev.api.hftvn.com/privkey.pem
+cd /Users/tri/nginx-docker
+./scripts/certs.sh sync-letsencrypt dev.api.hftvn.com
+./scripts/certs.sh check letsencrypt dev.api.hftvn.com
 ```
 
 Check that files exist:
@@ -122,7 +124,7 @@ wc -l certs/letsencrypt/live/dev.api.hftvn.com/privkey.pem
 Use `docker-compose` on the dev server if Compose v2 is not available.
 
 ```bash
-cd glimpse-monitor/nginx-docker
+cd /Users/tri/nginx-docker
 docker-compose down
 docker-compose up -d
 docker exec glimpse-nginx nginx -t
@@ -175,15 +177,15 @@ glimpse-go.site
 *.glimpse-go.site
 ```
 
-Save the certificate and private key:
+Save the certificate and private key temporarily on the dev server, then install them with the cert manager:
 
 ```bash
-cd glimpse-monitor/nginx-docker
+cd /Users/tri/nginx-docker
 
-mkdir -p certs/cloudflare/glimpse-go.site
-nano certs/cloudflare/glimpse-go.site/fullchain.pem
-nano certs/cloudflare/glimpse-go.site/privkey.pem
-chmod 600 certs/cloudflare/glimpse-go.site/privkey.pem
+./scripts/certs.sh install cloudflare glimpse-go.site \
+  /tmp/glimpse-go.site.fullchain.pem \
+  /tmp/glimpse-go.site.privkey.pem
+./scripts/certs.sh check cloudflare glimpse-go.site
 ```
 
 Then edit `.env`:
@@ -197,7 +199,7 @@ Restart and test:
 ```bash
 docker-compose down
 docker-compose up -d
-docker exec glimpse-nginx nginx -t
+./scripts/certs.sh reload
 
 curl -k -I --resolve glimpse-go.site:443:127.0.0.1 https://glimpse-go.site
 curl -k -I --resolve www.glimpse-go.site:443:127.0.0.1 https://www.glimpse-go.site
@@ -244,3 +246,5 @@ If image pull fails with `docker-credential-desktop`, remove the broken credenti
 ```bash
 docker-compose up -d
 ```
+
+For certificate add, update, remove, and backup operations, see `docs/nginx-cert-management.md`.
