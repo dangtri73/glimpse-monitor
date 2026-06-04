@@ -168,14 +168,29 @@ Manual Nginx deploy:
 GitHub repo -> Actions -> Build and deploy Nginx -> Run workflow
 ```
 
-## Repo Commands
+## Runtime Commands
+
+Mac Studio does not need a manually maintained `glimpse-monitor` repo checkout for runtime. The GitHub runner checks out code under its `_work` directory for each job. Runtime files live in:
+
+```txt
+/Users/admin/glimpse-monitor-runtime
+```
+
+Recommended GitHub Actions repository variables for Mac Studio app services:
+
+```txt
+MACSTUDIO_RUNTIME_DIR=/Users/admin/glimpse-monitor-runtime
+MACSTUDIO_ENV_FILE=/Users/admin/glimpse-monitor-runtime/.env
+```
+
+`MACSTUDIO_ENV_FILE` is not a repo checkout path. It is the persistent Docker runtime env file on Mac Studio.
 
 On Mac Studio:
 
 ```bash
-cd /Users/vutri/Desktop/projects/Glimpse/glimpse-monitor
-git pull --ff-only
-git status
+cd /Users/admin/glimpse-monitor-runtime
+docker compose --env-file .env -f docker-compose.yml ps
+docker compose --env-file .env -f docker-compose.yml logs --tail=80 dashboard
 ```
 
 On the dev server for Nginx:

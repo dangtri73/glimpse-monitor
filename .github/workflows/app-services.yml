@@ -32,7 +32,8 @@ env:
   DOCKER_PLATFORM: ${{ vars.DOCKER_PLATFORM || 'linux/arm64' }}
   DOCKERHUB_NAMESPACE: ${{ vars.DOCKERHUB_NAMESPACE || 'dangtri73' }}
   IMAGE_PREFIX: ${{ vars.IMAGE_PREFIX || 'glimpse-monitor' }}
-  MACSTUDIO_ENV_FILE: ${{ vars.MACSTUDIO_ENV_FILE || '/Users/vutri/Desktop/projects/Glimpse/glimpse-monitor/infra/.env' }}
+  MACSTUDIO_RUNTIME_DIR: ${{ vars.MACSTUDIO_RUNTIME_DIR || '/Users/admin/glimpse-monitor-runtime' }}
+  MACSTUDIO_ENV_FILE: ${{ vars.MACSTUDIO_ENV_FILE || '/Users/admin/glimpse-monitor-runtime/.env' }}
   MACSTUDIO_DOCKER_SOCKET: ${{ vars.MACSTUDIO_DOCKER_SOCKET || '' }}
 
 jobs:
@@ -170,6 +171,7 @@ jobs:
             DOCKERHUB_NAMESPACE="$DOCKERHUB_NAMESPACE" \
               IMAGE_PREFIX="$IMAGE_PREFIX" \
               IMAGE_TAG="$IMAGE_TAG" \
+              RUNTIME_DIR="$MACSTUDIO_RUNTIME_DIR" \
               ENV_FILE="$MACSTUDIO_ENV_FILE" \
               ./scripts/deploy-macstudio.sh "$target"
           done

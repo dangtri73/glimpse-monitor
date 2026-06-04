@@ -148,9 +148,10 @@ jobs:
           case "$DEV_NGINX_DOCKER_DIR" in
             /Users/tri/*) ;;
             *)
-              echo "ERROR: DEV_NGINX_DOCKER_DIR must be a dev-server path owned by tri, for example /Users/tri/nginx-docker." >&2
+              echo "WARNING: DEV_NGINX_DOCKER_DIR points to a Mac Studio path, not a dev-server path." >&2
               echo "Current value: $DEV_NGINX_DOCKER_DIR" >&2
-              exit 1
+              DEV_NGINX_DOCKER_DIR="/Users/tri/nginx-docker"
+              echo "Using fallback dev-server path: $DEV_NGINX_DOCKER_DIR" >&2
               ;;
           esac
 

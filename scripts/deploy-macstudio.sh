@@ -16,6 +16,7 @@ Optional env:
   IMAGE_PREFIX=glimpse-monitor
   COMPOSE_FILE=infra/docker-compose.yml
   ENV_FILE=infra/.env
+  RUNTIME_DIR=/Users/admin/glimpse-monitor-runtime
 
 Modes:
   dashboard   Pull/run dashboard only.
@@ -34,8 +35,11 @@ fi
 TARGET="${1:-all}"
 SCRIPT_DIR="$(CDPATH= cd -- "$(dirname -- "$0")" && pwd)"
 PROJECT_DIR="$(CDPATH= cd -- "$SCRIPT_DIR/.." && pwd)"
+COMPOSE_FILE_WAS_SET="${COMPOSE_FILE+x}"
+ENV_FILE_WAS_SET="${ENV_FILE+x}"
 COMPOSE_FILE="${COMPOSE_FILE:-infra/docker-compose.yml}"
 ENV_FILE="${ENV_FILE:-infra/.env}"
+RUNTIME_DIR="${RUNTIME_DIR:-}"
 
 resolve_path() {
   case "$1" in
@@ -52,6 +56,43 @@ env_value() {
   fi
   sed -n "s/^$key=//p" "$file" | tail -n 1
 }
+
+prepare_runtime_dir() {
+  [ -n "$RUNTIME_DIR" ] || return 0
+
+  case "$RUNTIME_DIR" in
+    /*) ;;
+    *) RUNTIME_DIR="$HOME/$RUNTIME_DIR" ;;
+  esac
+
+  mkdir -p "$RUNTIME_DIR/sql"
+  cp "$PROJECT_DIR/infra/docker-compose.yml" "$RUNTIME_DIR/docker-compose.yml"
+  cp "$PROJECT_DIR/docs/sql/monitor_schema.sql" "$RUNTIME_DIR/sql/monitor_schema.sql"
+
+  if [ ! -f "$RUNTIME_DIR/.env" ]; then
+    cp "$PROJECT_DIR/infra/.env.example" "$RUNTIME_DIR/.env"
+    echo "Created runtime env file: $RUNTIME_DIR/.env"
+  fi
+
+  case "$ENV_FILE" in
+    */glimpse-monitor/infra/.env)
+      echo "Ignoring repo checkout env path for runtime deploy: $ENV_FILE"
+      ENV_FILE="$RUNTIME_DIR/.env"
+      ;;
+  esac
+
+  if [ -z "$COMPOSE_FILE_WAS_SET" ] || [ "$COMPOSE_FILE" = "infra/docker-compose.yml" ]; then
+    COMPOSE_FILE="$RUNTIME_DIR/docker-compose.yml"
+  fi
+
+  if [ -z "$ENV_FILE_WAS_SET" ] || [ "$ENV_FILE" = "infra/.env" ]; then
+    ENV_FILE="$RUNTIME_DIR/.env"
+  fi
+
+  export POSTGRES_INIT_SQL="${POSTGRES_INIT_SQL:-$RUNTIME_DIR/sql/monitor_schema.sql}"
+}
+
+prepare_runtime_dir
 
 NAMESPACE="${DOCKERHUB_NAMESPACE:-${DOCKER_NAMESPACE:-$(env_value DOCKERHUB_NAMESPACE)}}"
 if [ -z "$NAMESPACE" ]; then
@@ -96,6 +137,11 @@ SERVICES="$(services_for_target "$TARGET")" || {
 }
 
 echo "Deploy target: $TARGET"
+if [ -n "$RUNTIME_DIR" ]; then
+  echo "Runtime dir:    $RUNTIME_DIR"
+fi
+echo "Compose file:   $(resolve_path "$COMPOSE_FILE")"
+echo "Env file:       $(resolve_path "$ENV_FILE")"
 echo "Dashboard image:  $DASHBOARD_IMAGE"
 echo "AI service image: $AI_SERVICE_IMAGE"
 echo "Workers image:    $WORKERS_IMAGE"

@@ -66,11 +66,26 @@ For an Intel/Linux server, use:
 DOCKER_PLATFORM=linux/amd64
 ```
 
-## Mac Studio Env
+## Mac Studio Runtime
 
-Create `/Users/vutri/Desktop/projects/Glimpse/glimpse-monitor/infra/.env` on Mac Studio:
+Mac Studio does not need a manually maintained repo checkout for runtime. GitHub Actions checks out code into the runner workspace only while building images. Long-lived runtime state should live here:
+
+```txt
+/Users/admin/glimpse-monitor-runtime
+```
+
+The deploy script copies these runtime files from the runner checkout into that directory:
+
+```txt
+docker-compose.yml
+sql/monitor_schema.sql
+.env
+```
+
+Create `/Users/admin/glimpse-monitor-runtime/.env` on Mac Studio:
 
 ```env
+POSTGRES_INIT_SQL=/Users/admin/glimpse-monitor-runtime/sql/monitor_schema.sql
 DOCKERHUB_NAMESPACE=dangtri73
 IMAGE_TAG=local-latest
 IMAGE_PREFIX=glimpse-monitor
@@ -127,6 +142,8 @@ Do not commit real passwords.
 
 ## Deploy on Mac Studio
 
+Manual commands in this section need a temporary checkout because the deploy script lives in the repo. GitHub Actions provides that checkout automatically. The runtime directory remains `/Users/admin/glimpse-monitor-runtime`.
+
 Login once if the Docker Hub repository is private:
 
 ```bash
@@ -140,6 +157,8 @@ cd /Users/vutri/Desktop/projects/Glimpse/glimpse-monitor
 
 DOCKERHUB_NAMESPACE=dangtri73 \
 IMAGE_TAG=local-latest \
+RUNTIME_DIR=/Users/admin/glimpse-monitor-runtime \
+ENV_FILE=/Users/admin/glimpse-monitor-runtime/.env \
 ./scripts/deploy-macstudio.sh ai-service
 ```
 
@@ -148,6 +167,8 @@ Deploy dashboard:
 ```bash
 DOCKERHUB_NAMESPACE=dangtri73 \
 IMAGE_TAG=local-latest \
+RUNTIME_DIR=/Users/admin/glimpse-monitor-runtime \
+ENV_FILE=/Users/admin/glimpse-monitor-runtime/.env \
 ./scripts/deploy-macstudio.sh dashboard
 ```
 
@@ -156,6 +177,8 @@ Deploy both workers:
 ```bash
 DOCKERHUB_NAMESPACE=dangtri73 \
 IMAGE_TAG=local-latest \
+RUNTIME_DIR=/Users/admin/glimpse-monitor-runtime \
+ENV_FILE=/Users/admin/glimpse-monitor-runtime/.env \
 ./scripts/deploy-macstudio.sh workers
 ```
 
@@ -164,12 +187,16 @@ Deploy all custom services:
 ```bash
 DOCKERHUB_NAMESPACE=dangtri73 \
 IMAGE_TAG=local-latest \
+RUNTIME_DIR=/Users/admin/glimpse-monitor-runtime \
+ENV_FILE=/Users/admin/glimpse-monitor-runtime/.env \
 ./scripts/deploy-macstudio.sh all
 ```
 
-If `infra/.env` already contains the Docker Hub settings, this is enough:
+If `/Users/admin/glimpse-monitor-runtime/.env` already contains the Docker Hub settings, this is enough:
 
 ```bash
+RUNTIME_DIR=/Users/admin/glimpse-monitor-runtime \
+ENV_FILE=/Users/admin/glimpse-monitor-runtime/.env \
 ./scripts/deploy-macstudio.sh all
 ```
 
@@ -178,6 +205,8 @@ Deploy the full stack:
 ```bash
 DOCKERHUB_NAMESPACE=dangtri73 \
 IMAGE_TAG=local-latest \
+RUNTIME_DIR=/Users/admin/glimpse-monitor-runtime \
+ENV_FILE=/Users/admin/glimpse-monitor-runtime/.env \
 ./scripts/deploy-macstudio.sh stack
 ```
 
@@ -221,6 +250,8 @@ Required GitHub Actions variables:
 ```txt
 DOCKERHUB_NAMESPACE=dangtri73
 DOCKER_PLATFORM=linux/arm64
+MACSTUDIO_RUNTIME_DIR=/Users/admin/glimpse-monitor-runtime
+MACSTUDIO_ENV_FILE=/Users/admin/glimpse-monitor-runtime/.env
 ```
 
 Build job on the Mac Studio self-hosted runner:
@@ -233,7 +264,7 @@ DOCKERHUB_NAMESPACE="$DOCKERHUB_NAMESPACE" IMAGE_TAG="$GITHUB_SHA" ./scripts/doc
 Deploy job on the Mac Studio self-hosted runner:
 
 ```bash
-DOCKERHUB_NAMESPACE="$DOCKERHUB_NAMESPACE" IMAGE_TAG="$GITHUB_SHA" ./scripts/deploy-macstudio.sh all
+DOCKERHUB_NAMESPACE="$DOCKERHUB_NAMESPACE" IMAGE_TAG="$GITHUB_SHA" RUNTIME_DIR="$MACSTUDIO_RUNTIME_DIR" ENV_FILE="$MACSTUDIO_ENV_FILE" ./scripts/deploy-macstudio.sh all
 ```
 
 Use `latest` only for manual testing. For automated deploys, prefer immutable tags such as the short GitHub SHA.

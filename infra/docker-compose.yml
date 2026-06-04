@@ -33,7 +33,7 @@ services:
       - "127.0.0.1:${POSTGRES_PORT:-5433}:5432"
     volumes:
       - monitor-postgres:/var/lib/postgresql/data
-      - ../docs/sql/monitor_schema.sql:/docker-entrypoint-initdb.d/001-monitor-schema.sql:ro
+      - ${POSTGRES_INIT_SQL:-../docs/sql/monitor_schema.sql}:/docker-entrypoint-initdb.d/001-monitor-schema.sql:ro
     healthcheck:
       test: ["CMD-SHELL", "pg_isready -U $${POSTGRES_USER} -d $${POSTGRES_DB}"]
       interval: 10s

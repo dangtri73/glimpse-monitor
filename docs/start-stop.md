@@ -321,7 +321,7 @@ IMAGE_TAG=local-latest \
 On Mac Studio, create or update:
 
 ```txt
-/Users/vutri/Desktop/projects/Glimpse/glimpse-monitor/infra/.env
+/Users/admin/glimpse-monitor-runtime/.env
 ```
 
 Minimum Docker Hub deploy env:
@@ -330,6 +330,7 @@ Minimum Docker Hub deploy env:
 DOCKERHUB_NAMESPACE=dangtri73
 IMAGE_TAG=local-latest
 IMAGE_PREFIX=glimpse-monitor
+POSTGRES_INIT_SQL=/Users/admin/glimpse-monitor-runtime/sql/monitor_schema.sql
 
 DASHBOARD_IMAGE=dangtri73/glimpse-monitor-dashboard:local-latest
 AI_SERVICE_IMAGE=dangtri73/glimpse-monitor-ai-service:local-latest
@@ -363,30 +364,40 @@ Deploy one service:
 
 ```bash
 cd /Users/vutri/Desktop/projects/Glimpse/glimpse-monitor
+RUNTIME_DIR=/Users/admin/glimpse-monitor-runtime \
+ENV_FILE=/Users/admin/glimpse-monitor-runtime/.env \
 ./scripts/deploy-macstudio.sh ai-service
 ```
 
 Deploy the dashboard:
 
 ```bash
+RUNTIME_DIR=/Users/admin/glimpse-monitor-runtime \
+ENV_FILE=/Users/admin/glimpse-monitor-runtime/.env \
 ./scripts/deploy-macstudio.sh dashboard
 ```
 
 Deploy both workers:
 
 ```bash
+RUNTIME_DIR=/Users/admin/glimpse-monitor-runtime \
+ENV_FILE=/Users/admin/glimpse-monitor-runtime/.env \
 ./scripts/deploy-macstudio.sh workers
 ```
 
 Deploy all custom services:
 
 ```bash
+RUNTIME_DIR=/Users/admin/glimpse-monitor-runtime \
+ENV_FILE=/Users/admin/glimpse-monitor-runtime/.env \
 ./scripts/deploy-macstudio.sh all
 ```
 
 Deploy the full stack, including DB, Kafka, ClickHouse, Prometheus, and Grafana:
 
 ```bash
+RUNTIME_DIR=/Users/admin/glimpse-monitor-runtime \
+ENV_FILE=/Users/admin/glimpse-monitor-runtime/.env \
 ./scripts/deploy-macstudio.sh stack
 ```
 
