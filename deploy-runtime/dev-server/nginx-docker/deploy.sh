@@ -47,6 +47,26 @@ compose() {
   fi
 }
 
+nginx_test() {
+  attempts="${1:-20}"
+  i=1
+
+  while [ "$i" -le "$attempts" ]; do
+    if docker exec glimpse-nginx nginx -t; then
+      return 0
+    fi
+
+    echo "Waiting for glimpse-nginx to accept docker exec ($i/$attempts)..." >&2
+    sleep 2
+    i=$((i + 1))
+  done
+
+  echo "ERROR: nginx config test failed after $attempts attempts." >&2
+  compose ps nginx >&2 || true
+  compose logs --tail=80 nginx >&2 || true
+  return 1
+}
+
 upsert_env() {
   key="$1"
   value="$2"
@@ -71,7 +91,7 @@ deploy_nginx() {
   chmod +x scripts/certs.sh
   compose pull nginx
   compose up -d --no-build nginx
-  docker exec glimpse-nginx nginx -t
+  nginx_test 20
 }
 
 cmd="${1:-deploy}"
@@ -90,15 +110,15 @@ case "$cmd" in
     compose logs -f --tail="${TAIL:-200}" nginx
     ;;
   test)
-    docker exec glimpse-nginx nginx -t
+    nginx_test 1
     ;;
   reload)
-    docker exec glimpse-nginx nginx -t
+    nginx_test 3
     docker exec glimpse-nginx nginx -s reload
     ;;
   restart)
     compose restart nginx
-    docker exec glimpse-nginx nginx -t
+    nginx_test 20
     ;;
   stop)
     compose stop nginx
