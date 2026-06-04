@@ -172,6 +172,19 @@ jobs:
           ssh -i ~/.ssh/id_ed25519 -p "$DEV_SSH_PORT" "$DEV_SSH_USER@$DEV_SSH_HOST" \
             "DEPLOY_IMAGE='$deploy_image' REMOTE_DIR='$DEV_NGINX_DOCKER_DIR' sh -s" <<'REMOTE'
           set -eu
+          export PATH="/opt/homebrew/bin:/usr/local/bin:/opt/local/bin:/usr/bin:/bin:/usr/sbin:/sbin:$PATH"
+
+          compose() {
+            if command -v docker-compose >/dev/null 2>&1; then
+              docker-compose "$@"
+            elif docker compose version >/dev/null 2>&1; then
+              docker compose "$@"
+            else
+              echo "ERROR: docker-compose or docker compose is required on the dev server." >&2
+              echo "PATH: $PATH" >&2
+              exit 1
+            fi
+          }
 
           cd "$REMOTE_DIR"
           chmod +x scripts/certs.sh
@@ -196,13 +209,8 @@ jobs:
             printf '\nNGINX_TEMPLATE_MODE=dev-ssl\n' >> .env
           fi
 
-          if docker compose version >/dev/null 2>&1; then
-            docker compose pull nginx
-            docker compose up -d --no-build nginx
-          else
-            docker-compose pull nginx
-            docker-compose up -d --no-build nginx
-          fi
+          compose pull nginx
+          compose up -d --no-build nginx
 
           docker exec glimpse-nginx nginx -t
           REMOTE

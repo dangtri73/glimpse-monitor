@@ -113,9 +113,19 @@ compose() {
   env_file="$(resolve_path "$ENV_FILE")"
   compose_file="$(resolve_path "$COMPOSE_FILE")"
   if [ -f "$env_file" ]; then
-    docker compose --env-file "$env_file" -f "$compose_file" "$@"
-  else
+    set -a
+    # shellcheck disable=SC1090
+    . "$env_file"
+    set +a
+  fi
+  if docker compose version >/dev/null 2>&1; then
     docker compose -f "$compose_file" "$@"
+  elif command -v docker-compose >/dev/null 2>&1; then
+    docker-compose -f "$compose_file" "$@"
+  else
+    echo "ERROR: docker compose or docker-compose is required." >&2
+    echo "PATH: $PATH" >&2
+    exit 1
   fi
 }
 
