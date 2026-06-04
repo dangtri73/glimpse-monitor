@@ -1,4 +1,4 @@
-# Docker Nginx Gateway
+# Docker Nginx Gateway ()
 
 Dockerized Nginx reverse proxy for the Glimpse dev server.
 
