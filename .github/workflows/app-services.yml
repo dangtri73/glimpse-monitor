@@ -1,0 +1,120 @@
+name: Build and deploy app services
+
+on:
+  push:
+    branches:
+      - main
+    paths:
+      - "dashboard/**"
+      - "ai-service/**"
+      - "workers/**"
+      - "infra/**"
+      - "scripts/**"
+      - ".github/workflows/app-services.yml"
+  workflow_dispatch:
+    inputs:
+      service:
+        description: Service to build and deploy
+        required: true
+        default: all
+        type: choice
+        options:
+          - all
+          - dashboard
+          - ai-service
+          - workers
+
+concurrency:
+  group: macstudio-app-deploy
+  cancel-in-progress: false
+
+env:
+  DOCKER_PLATFORM: ${{ vars.DOCKER_PLATFORM || 'linux/arm64' }}
+  DOCKERHUB_NAMESPACE: ${{ vars.DOCKERHUB_NAMESPACE || 'dangtri73' }}
+  IMAGE_PREFIX: ${{ vars.IMAGE_PREFIX || 'glimpse-monitor' }}
+  MACSTUDIO_ENV_FILE: ${{ vars.MACSTUDIO_ENV_FILE || '/Users/vutri/Desktop/projects/Glimpse/glimpse-monitor/infra/.env' }}
+
+jobs:
+  build-and-deploy:
+    runs-on: [self-hosted, macOS, ARM64, macstudio]
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Determine changed services
+        run: |
+          set -eu
+
+          add_target() {
+            case " $targets " in
+              *" $1 "*) ;;
+              *) targets="$targets $1" ;;
+            esac
+          }
+
+          targets=""
+
+          if [ "${{ github.event_name }}" = "workflow_dispatch" ]; then
+            targets="${{ inputs.service }}"
+          else
+            before="${{ github.event.before }}"
+            if [ -z "$before" ] || [ "$before" = "0000000000000000000000000000000000000000" ]; then
+              targets="all"
+            else
+              changed_files="$(git diff --name-only "$before" "$GITHUB_SHA")"
+              if printf '%s\n' "$changed_files" | grep -Eq '^(infra|scripts)/|^\.github/workflows/app-services\.yml$'; then
+                targets="all"
+              else
+                printf '%s\n' "$changed_files" | grep -q '^dashboard/' && add_target dashboard
+                printf '%s\n' "$changed_files" | grep -q '^ai-service/' && add_target ai-service
+                printf '%s\n' "$changed_files" | grep -q '^workers/' && add_target workers
+              fi
+            fi
+          fi
+
+          if [ -z "$targets" ]; then
+            echo "No deployable service changed."
+            targets="none"
+          fi
+
+          short_sha="${GITHUB_SHA::7}"
+          echo "IMAGE_TAG=$short_sha" >> "$GITHUB_ENV"
+          echo "TARGETS=$targets" >> "$GITHUB_ENV"
+          echo "Targets: $targets"
+
+      - name: Log in to Docker Hub
+        if: env.TARGETS != 'none'
+        env:
+          DOCKERHUB_USERNAME: ${{ secrets.DOCKERHUB_USERNAME }}
+          DOCKERHUB_TOKEN: ${{ secrets.DOCKERHUB_TOKEN }}
+        run: |
+          set -eu
+          test -n "$DOCKERHUB_USERNAME"
+          test -n "$DOCKERHUB_TOKEN"
+          echo "$DOCKERHUB_TOKEN" | docker login -u "$DOCKERHUB_USERNAME" --password-stdin
+
+      - name: Build and push changed service images
+        if: env.TARGETS != 'none'
+        run: |
+          set -eu
+          for target in $TARGETS; do
+            DOCKERHUB_NAMESPACE="$DOCKERHUB_NAMESPACE" \
+              IMAGE_PREFIX="$IMAGE_PREFIX" \
+              IMAGE_TAG="$IMAGE_TAG" \
+              DOCKER_PLATFORM="$DOCKER_PLATFORM" \
+              ./scripts/docker-build-push.sh "$target"
+          done
+
+      - name: Deploy changed services on Mac Studio
+        if: env.TARGETS != 'none'
+        run: |
+          set -eu
+          for target in $TARGETS; do
+            DOCKERHUB_NAMESPACE="$DOCKERHUB_NAMESPACE" \
+              IMAGE_PREFIX="$IMAGE_PREFIX" \
+              IMAGE_TAG="$IMAGE_TAG" \
+              ENV_FILE="$MACSTUDIO_ENV_FILE" \
+              ./scripts/deploy-macstudio.sh "$target"
+          done

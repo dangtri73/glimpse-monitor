@@ -1,0 +1,413 @@
+name: glimpse-monitor
+
+x-logging: &default-logging
+  driver: json-file
+  options:
+    max-size: "50m"
+    max-file: "3"
+
+x-gateway-worker-env: &gateway-worker-env
+  KAFKA_BROKERS: kafka:9092
+  KAFKA_RAW_TOPIC: gateway.requests.raw
+  KAFKA_ENRICHED_TOPIC: gateway.requests.enriched
+  KAFKA_DEAD_LETTER_TOPIC: gateway.dead-letter
+  KAFKA_SEND_TIMEOUT_SECONDS: ${WORKER_KAFKA_SEND_TIMEOUT_SECONDS:-10}
+  KAFKA_POLL_TIMEOUT_MS: ${WORKER_KAFKA_POLL_TIMEOUT_MS:-1000}
+  CLICKHOUSE_HOST: clickhouse
+  CLICKHOUSE_PORT: 8123
+  CLICKHOUSE_DB: ${CLICKHOUSE_DB:-glimpse_gateway}
+  CLICKHOUSE_USER: ${CLICKHOUSE_USER:-glimpse}
+  CLICKHOUSE_PASSWORD: ${CLICKHOUSE_PASSWORD:-glimpse}
+  CLICKHOUSE_BATCH_SIZE: ${WORKER_CLICKHOUSE_BATCH_SIZE:-500}
+
+services:
+  postgres:
+    image: timescale/timescaledb:2.17.2-pg16
+    container_name: glimpse-monitor-postgres
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: ${POSTGRES_DB:-glimpse_monitor}
+      POSTGRES_USER: ${POSTGRES_USER:-glimpse}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-glimpse}
+    ports:
+      - "127.0.0.1:${POSTGRES_PORT:-5433}:5432"
+    volumes:
+      - monitor-postgres:/var/lib/postgresql/data
+      - ../docs/sql/monitor_schema.sql:/docker-entrypoint-initdb.d/001-monitor-schema.sql:ro
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U $${POSTGRES_USER} -d $${POSTGRES_DB}"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+    networks:
+      - monitor
+    logging: *default-logging
+
+  postgres-exporter:
+    image: prometheuscommunity/postgres-exporter:v0.15.0
+    container_name: glimpse-monitor-postgres-exporter
+    restart: unless-stopped
+    depends_on:
+      postgres:
+        condition: service_healthy
+    environment:
+      DATA_SOURCE_NAME: postgresql://${POSTGRES_USER:-glimpse}:${POSTGRES_PASSWORD:-glimpse}@postgres:5432/${POSTGRES_DB:-glimpse_monitor}?sslmode=disable
+    networks:
+      - monitor
+    logging: *default-logging
+
+  redis:
+    image: redis:7.4-alpine
+    container_name: glimpse-monitor-redis
+    restart: unless-stopped
+    command: ["redis-server", "--appendonly", "yes"]
+    ports:
+      - "127.0.0.1:${REDIS_PORT:-6380}:6379"
+    volumes:
+      - monitor-redis:/data
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+    networks:
+      - monitor
+    logging: *default-logging
+
+  redis-exporter:
+    image: oliver006/redis_exporter:v1.67.0
+    container_name: glimpse-monitor-redis-exporter
+    restart: unless-stopped
+    depends_on:
+      redis:
+        condition: service_healthy
+    environment:
+      REDIS_ADDR: redis://redis:6379
+    networks:
+      - monitor
+    logging: *default-logging
+
+  kafka:
+    image: apache/kafka:3.7.0
+    container_name: glimpse-monitor-kafka
+    restart: unless-stopped
+    environment:
+      CLUSTER_ID: ${KAFKA_CLUSTER_ID:-MkU3OEVBNTcwNTJENDM2Qk}
+      KAFKA_NODE_ID: 1
+      KAFKA_PROCESS_ROLES: broker,controller
+      KAFKA_CONTROLLER_QUORUM_VOTERS: 1@kafka:9093
+      KAFKA_LISTENERS: PLAINTEXT://:9092,CONTROLLER://:9093,EXTERNAL://:9094
+      KAFKA_ADVERTISED_LISTENERS: PLAINTEXT://kafka:9092,EXTERNAL://${KAFKA_EXTERNAL_HOST:-localhost}:${KAFKA_EXTERNAL_PORT:-9094}
+      KAFKA_LISTENER_SECURITY_PROTOCOL_MAP: PLAINTEXT:PLAINTEXT,CONTROLLER:PLAINTEXT,EXTERNAL:PLAINTEXT
+      KAFKA_INTER_BROKER_LISTENER_NAME: PLAINTEXT
+      KAFKA_CONTROLLER_LISTENER_NAMES: CONTROLLER
+      KAFKA_AUTO_CREATE_TOPICS_ENABLE: "false"
+      KAFKA_NUM_PARTITIONS: 6
+      KAFKA_DEFAULT_REPLICATION_FACTOR: 1
+      KAFKA_MIN_INSYNC_REPLICAS: 1
+      KAFKA_OFFSETS_TOPIC_REPLICATION_FACTOR: 1
+      KAFKA_TRANSACTION_STATE_LOG_REPLICATION_FACTOR: 1
+      KAFKA_TRANSACTION_STATE_LOG_MIN_ISR: 1
+      KAFKA_LOG_RETENTION_HOURS: ${KAFKA_LOG_RETENTION_HOURS:-168}
+      KAFKA_LOG_SEGMENT_BYTES: ${KAFKA_LOG_SEGMENT_BYTES:-1073741824}
+      KAFKA_LOG_RETENTION_CHECK_INTERVAL_MS: 300000
+    ports:
+      - "127.0.0.1:${KAFKA_EXTERNAL_PORT:-9094}:9094"
+    volumes:
+      - monitor-kafka:/var/lib/kafka/data
+    healthcheck:
+      test: ["CMD-SHELL", "/opt/kafka/bin/kafka-topics.sh --bootstrap-server localhost:9092 --list >/dev/null 2>&1"]
+      interval: 10s
+      timeout: 10s
+      retries: 20
+    networks:
+      - monitor
+    logging: *default-logging
+
+  kafka-exporter:
+    image: danielqsj/kafka-exporter:v1.8.0
+    container_name: glimpse-monitor-kafka-exporter
+    restart: unless-stopped
+    depends_on:
+      kafka:
+        condition: service_healthy
+    command:
+      - --kafka.server=kafka:9092
+    networks:
+      - monitor
+    logging: *default-logging
+
+  kafka-init:
+    image: apache/kafka:3.7.0
+    container_name: glimpse-monitor-kafka-init
+    depends_on:
+      kafka:
+        condition: service_healthy
+    entrypoint: ["/bin/bash", "-c"]
+    command:
+      - |
+        set -euo pipefail
+        /opt/kafka/bin/kafka-topics.sh --bootstrap-server kafka:9092 --create --if-not-exists --topic gateway.requests.raw --partitions 6 --replication-factor 1 --config retention.ms=86400000
+        /opt/kafka/bin/kafka-topics.sh --bootstrap-server kafka:9092 --create --if-not-exists --topic gateway.requests.enriched --partitions 6 --replication-factor 1 --config retention.ms=604800000
+        /opt/kafka/bin/kafka-topics.sh --bootstrap-server kafka:9092 --create --if-not-exists --topic gateway.metrics.rollup --partitions 6 --replication-factor 1 --config retention.ms=604800000
+        /opt/kafka/bin/kafka-topics.sh --bootstrap-server kafka:9092 --create --if-not-exists --topic gateway.embedding.jobs --partitions 6 --replication-factor 1 --config retention.ms=604800000
+        /opt/kafka/bin/kafka-topics.sh --bootstrap-server kafka:9092 --create --if-not-exists --topic gateway.alerts --partitions 6 --replication-factor 1 --config retention.ms=2592000000
+        /opt/kafka/bin/kafka-topics.sh --bootstrap-server kafka:9092 --create --if-not-exists --topic gateway.dead-letter --partitions 6 --replication-factor 1 --config retention.ms=2592000000
+        /opt/kafka/bin/kafka-topics.sh --bootstrap-server kafka:9092 --create --if-not-exists --topic gateway.security.events --partitions 6 --replication-factor 1 --config retention.ms=2592000000
+        /opt/kafka/bin/kafka-topics.sh --bootstrap-server kafka:9092 --create --if-not-exists --topic gateway.nginx.config-events --partitions 6 --replication-factor 1 --config retention.ms=2592000000
+        /opt/kafka/bin/kafka-topics.sh --bootstrap-server kafka:9092 --create --if-not-exists --topic gateway.service.actions --partitions 6 --replication-factor 1 --config retention.ms=2592000000
+        /opt/kafka/bin/kafka-topics.sh --bootstrap-server kafka:9092 --create --if-not-exists --topic gateway.incident.summaries --partitions 6 --replication-factor 1 --config retention.ms=2592000000
+    networks:
+      - monitor
+    logging: *default-logging
+
+  kafka-ui:
+    image: provectuslabs/kafka-ui:v0.7.2
+    container_name: glimpse-monitor-kafka-ui
+    restart: unless-stopped
+    depends_on:
+      kafka:
+        condition: service_healthy
+    environment:
+      KAFKA_CLUSTERS_0_NAME: glimpse-monitor
+      KAFKA_CLUSTERS_0_BOOTSTRAPSERVERS: kafka:9092
+    ports:
+      - "127.0.0.1:${KAFKA_UI_PORT:-8082}:8080"
+    networks:
+      - monitor
+    logging: *default-logging
+
+  dashboard:
+    build:
+      context: ../dashboard
+    image: ${DASHBOARD_IMAGE:-glimpse-monitor-dashboard:local}
+    container_name: glimpse-monitor-dashboard
+    restart: unless-stopped
+    depends_on:
+      kafka:
+        condition: service_healthy
+      kafka-init:
+        condition: service_completed_successfully
+      ai-service:
+        condition: service_started
+    environment:
+      NODE_ENV: production
+      PORT: 3000
+      HOSTNAME: 0.0.0.0
+      MONITOR_AGENT_URL: ${MONITOR_AGENT_URL:-http://host.docker.internal:8765}
+      MONITOR_AGENT_ADMIN_TOKEN: ${MONITOR_AGENT_ADMIN_TOKEN:-}
+      AI_SERVICE_URL: ${AI_SERVICE_URL:-http://ai-service:8770}
+      AI_CHAT_MODEL: ${AI_CHAT_MODEL:-gemma3:270m}
+      AI_CHAT_TIMEOUT_MS: ${AI_CHAT_TIMEOUT_MS:-70000}
+      GATEWAY_ID: ${GATEWAY_ID:-dev-gateway}
+      GATEWAY_REQUEST_EVENTS_ENABLED: ${GATEWAY_REQUEST_EVENTS_ENABLED:-true}
+      GATEWAY_REQUEST_EVENTS_LOG_FAILURES: ${GATEWAY_REQUEST_EVENTS_LOG_FAILURES:-false}
+      KAFKA_BROKERS: kafka:9092
+      KAFKA_CLIENT_ID: ${KAFKA_CLIENT_ID:-glimpse-dashboard}
+      KAFKA_GATEWAY_REQUEST_TOPIC: ${KAFKA_GATEWAY_REQUEST_TOPIC:-gateway.requests.raw}
+      KAFKA_PUBLISH_TIMEOUT_MS: ${KAFKA_PUBLISH_TIMEOUT_MS:-75}
+    ports:
+      - "127.0.0.1:${DASHBOARD_PORT:-3000}:3000"
+    networks:
+      - monitor
+    logging: *default-logging
+
+  ai-service:
+    build:
+      context: ../ai-service
+    image: ${AI_SERVICE_IMAGE:-glimpse-monitor-ai-service:local}
+    container_name: glimpse-monitor-ai-service
+    restart: unless-stopped
+    environment:
+      AI_SERVICE_HOST: 0.0.0.0
+      AI_SERVICE_PORT: 8770
+      OLLAMA_BASE_URL: ${OLLAMA_BASE_URL:-http://host.docker.internal:11434}
+      OLLAMA_MODEL: ${OLLAMA_MODEL:-gemma3:270m}
+      OLLAMA_TIMEOUT_SECONDS: ${OLLAMA_TIMEOUT_SECONDS:-60}
+    ports:
+      - "127.0.0.1:${AI_SERVICE_HOST_PORT:-8771}:8770"
+    networks:
+      - monitor
+    logging: *default-logging
+
+  gateway-request-enricher:
+    build:
+      context: ../workers
+    image: ${WORKERS_IMAGE:-glimpse-monitor-workers:local}
+    container_name: glimpse-monitor-gateway-request-enricher
+    restart: unless-stopped
+    command: ["python", "-m", "gateway_events", "enricher"]
+    depends_on:
+      kafka:
+        condition: service_healthy
+      kafka-init:
+        condition: service_completed_successfully
+    environment:
+      <<: *gateway-worker-env
+      KAFKA_ENRICHER_GROUP_ID: ${KAFKA_ENRICHER_GROUP_ID:-gateway-request-enricher}
+    networks:
+      - monitor
+    logging: *default-logging
+
+  gateway-analytics-writer:
+    build:
+      context: ../workers
+    image: ${WORKERS_IMAGE:-glimpse-monitor-workers:local}
+    container_name: glimpse-monitor-gateway-analytics-writer
+    restart: unless-stopped
+    command: ["python", "-m", "gateway_events", "analytics-writer"]
+    depends_on:
+      kafka:
+        condition: service_healthy
+      kafka-init:
+        condition: service_completed_successfully
+      clickhouse:
+        condition: service_healthy
+    environment:
+      <<: *gateway-worker-env
+      KAFKA_ANALYTICS_GROUP_ID: ${KAFKA_ANALYTICS_GROUP_ID:-gateway-analytics-writer}
+    networks:
+      - monitor
+    logging: *default-logging
+
+  clickhouse:
+    image: clickhouse/clickhouse-server:24.8
+    container_name: glimpse-monitor-clickhouse
+    restart: unless-stopped
+    environment:
+      CLICKHOUSE_DB: ${CLICKHOUSE_DB:-glimpse_gateway}
+      CLICKHOUSE_USER: ${CLICKHOUSE_USER:-glimpse}
+      CLICKHOUSE_PASSWORD: ${CLICKHOUSE_PASSWORD:-glimpse}
+      CLICKHOUSE_DEFAULT_ACCESS_MANAGEMENT: 1
+    ports:
+      - "127.0.0.1:${CLICKHOUSE_HTTP_PORT:-8123}:8123"
+      - "127.0.0.1:${CLICKHOUSE_NATIVE_PORT:-9000}:9000"
+    volumes:
+      - monitor-clickhouse:/var/lib/clickhouse
+      - monitor-clickhouse-logs:/var/log/clickhouse-server
+      - ./clickhouse/config.d/prometheus.xml:/etc/clickhouse-server/config.d/prometheus.xml:ro
+    healthcheck:
+      test: ["CMD-SHELL", "clickhouse-client --user $${CLICKHOUSE_USER} --password $${CLICKHOUSE_PASSWORD} --query 'SELECT 1'"]
+      interval: 10s
+      timeout: 5s
+      retries: 20
+    networks:
+      - monitor
+    logging: *default-logging
+
+  qdrant:
+    image: qdrant/qdrant:v1.12.6
+    container_name: glimpse-monitor-qdrant
+    restart: unless-stopped
+    ports:
+      - "127.0.0.1:${QDRANT_HTTP_PORT:-6333}:6333"
+      - "127.0.0.1:${QDRANT_GRPC_PORT:-6334}:6334"
+    volumes:
+      - monitor-qdrant:/qdrant/storage
+    networks:
+      - monitor
+    logging: *default-logging
+
+  adminer:
+    image: adminer:4.8.1
+    container_name: glimpse-monitor-adminer
+    restart: unless-stopped
+    depends_on:
+      postgres:
+        condition: service_healthy
+    environment:
+      ADMINER_DEFAULT_SERVER: postgres
+    ports:
+      - "127.0.0.1:${ADMINER_PORT:-8081}:8080"
+    networks:
+      - monitor
+    logging: *default-logging
+
+  postgres-backup:
+    image: postgres:16-alpine
+    container_name: glimpse-monitor-postgres-backup
+    restart: unless-stopped
+    depends_on:
+      postgres:
+        condition: service_healthy
+    environment:
+      POSTGRES_DB: ${POSTGRES_DB:-glimpse_monitor}
+      POSTGRES_USER: ${POSTGRES_USER:-glimpse}
+      PGPASSWORD: ${POSTGRES_PASSWORD:-glimpse}
+      POSTGRES_BACKUP_INTERVAL_SECONDS: ${POSTGRES_BACKUP_INTERVAL_SECONDS:-86400}
+      POSTGRES_BACKUP_RETENTION_DAYS: ${POSTGRES_BACKUP_RETENTION_DAYS:-14}
+    command:
+      - /bin/sh
+      - -c
+      - |
+        set -eu
+        mkdir -p /backups
+        while true; do
+          ts=$$(date -u +%Y%m%dT%H%M%SZ)
+          file="/backups/glimpse_monitor_$${ts}.dump"
+          echo "creating postgres backup: $${file}"
+          pg_dump -h postgres -U "$${POSTGRES_USER}" -d "$${POSTGRES_DB}" -Fc -f "$${file}"
+          find /backups -type f -name "glimpse_monitor_*.dump" -mtime +"$${POSTGRES_BACKUP_RETENTION_DAYS}" -delete
+          sleep "$${POSTGRES_BACKUP_INTERVAL_SECONDS}"
+        done
+    volumes:
+      - ./backups/postgres:/backups
+    networks:
+      - monitor
+    logging: *default-logging
+
+  prometheus:
+    image: prom/prometheus:v2.55.1
+    container_name: glimpse-monitor-prometheus
+    restart: unless-stopped
+    command:
+      - --config.file=/etc/prometheus/prometheus.yml
+      - --storage.tsdb.path=/prometheus
+      - --storage.tsdb.retention.time=${PROMETHEUS_RETENTION_TIME:-15d}
+      - --web.enable-lifecycle
+    ports:
+      - "127.0.0.1:${PROMETHEUS_PORT:-9090}:9090"
+    volumes:
+      - ./prometheus/prometheus.yml:/etc/prometheus/prometheus.yml:ro
+      - ./prometheus/rules:/etc/prometheus/rules:ro
+      - monitor-prometheus:/prometheus
+    networks:
+      - monitor
+    logging: *default-logging
+
+  grafana:
+    image: grafana/grafana-oss:11.3.1
+    container_name: glimpse-monitor-grafana
+    restart: unless-stopped
+    depends_on:
+      - prometheus
+    environment:
+      GF_SECURITY_ADMIN_USER: ${GRAFANA_ADMIN_USER:-admin}
+      GF_SECURITY_ADMIN_PASSWORD: ${GRAFANA_ADMIN_PASSWORD:-glimpse}
+      GF_USERS_ALLOW_SIGN_UP: "false"
+      GF_ANALYTICS_REPORTING_ENABLED: "false"
+      GF_ANALYTICS_CHECK_FOR_UPDATES: "false"
+      GF_LOG_LEVEL: warn
+    ports:
+      - "127.0.0.1:${GRAFANA_PORT:-3001}:3000"
+    volumes:
+      - monitor-grafana:/var/lib/grafana
+      - ./grafana/provisioning:/etc/grafana/provisioning:ro
+      - ./grafana/dashboards:/var/lib/grafana/dashboards:ro
+    networks:
+      - monitor
+    logging: *default-logging
+
+volumes:
+  monitor-postgres:
+  monitor-redis:
+  monitor-kafka:
+  monitor-clickhouse:
+  monitor-clickhouse-logs:
+  monitor-qdrant:
+  monitor-prometheus:
+  monitor-grafana:
+
+networks:
+  monitor:
+    name: glimpse-monitor

@@ -1,0 +1,130 @@
+name: Build and deploy Nginx
+
+on:
+  push:
+    branches:
+      - main
+    tags:
+      - "v*"
+    paths:
+      - "nginx-docker/**"
+      - ".github/workflows/nginx-docker.yml"
+  workflow_dispatch:
+
+env:
+  DOCKER_PLATFORM: ${{ vars.DOCKER_PLATFORM || 'linux/arm64' }}
+  DOCKERHUB_NAMESPACE: ${{ vars.DOCKERHUB_NAMESPACE || 'dangtri73' }}
+  NGINX_DOCKERHUB_REPO: ${{ vars.NGINX_DOCKERHUB_REPO || 'glimpse-nginx' }}
+
+jobs:
+  build-and-deploy:
+    runs-on: [self-hosted, macOS, ARM64, macstudio]
+    defaults:
+      run:
+        working-directory: nginx-docker
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v4
+
+      - name: Compute image names
+        run: |
+          set -eu
+          short_sha="${GITHUB_SHA::7}"
+          image="${DOCKERHUB_NAMESPACE}/${NGINX_DOCKERHUB_REPO}"
+          echo "SHORT_SHA=$short_sha" >> "$GITHUB_ENV"
+          echo "IMAGE=$image" >> "$GITHUB_ENV"
+
+      - name: Build and validate Nginx image
+        run: |
+          set -eu
+          test_image="glimpse-nginx-ci:${SHORT_SHA}"
+          docker build --pull --platform "$DOCKER_PLATFORM" -t "$test_image" .
+          docker run --rm \
+            -e NGINX_TEMPLATE_MODE=http \
+            -e DEFAULT_UPSTREAM=http://127.0.0.1:11435 \
+            "$test_image" nginx -t
+
+      - name: Log in to Docker Hub
+        env:
+          DOCKERHUB_USERNAME: ${{ secrets.DOCKERHUB_USERNAME }}
+          DOCKERHUB_TOKEN: ${{ secrets.DOCKERHUB_TOKEN }}
+        run: |
+          set -eu
+          test -n "$DOCKERHUB_USERNAME"
+          test -n "$DOCKERHUB_TOKEN"
+          echo "$DOCKERHUB_TOKEN" | docker login -u "$DOCKERHUB_USERNAME" --password-stdin
+
+      - name: Push Docker Hub image
+        run: |
+          set -eu
+          docker build --pull --platform "$DOCKER_PLATFORM" -t "$IMAGE:$SHORT_SHA" .
+          docker push "$IMAGE:$SHORT_SHA"
+
+          if [ "$GITHUB_REF" = "refs/heads/main" ]; then
+            docker tag "$IMAGE:$SHORT_SHA" "$IMAGE:latest"
+            docker push "$IMAGE:latest"
+          fi
+
+          if [ "${GITHUB_REF_TYPE:-}" = "tag" ]; then
+            docker tag "$IMAGE:$SHORT_SHA" "$IMAGE:$GITHUB_REF_NAME"
+            docker push "$IMAGE:$GITHUB_REF_NAME"
+          fi
+
+      - name: Deploy to dev server
+        if: github.ref == 'refs/heads/main'
+        env:
+          DEV_SSH_HOST: ${{ secrets.DEV_SSH_HOST }}
+          DEV_SSH_PORT: ${{ vars.DEV_SSH_PORT || '22' }}
+          DEV_SSH_USER: ${{ secrets.DEV_SSH_USER }}
+          DEV_SSH_PRIVATE_KEY: ${{ secrets.DEV_SSH_PRIVATE_KEY }}
+          DEV_NGINX_DOCKER_DIR: ${{ vars.DEV_NGINX_DOCKER_DIR || '/Users/vutri/Desktop/projects/Glimpse/glimpse-monitor/nginx-docker' }}
+        run: |
+          set -eu
+          test -n "$DEV_SSH_HOST"
+          test -n "$DEV_SSH_USER"
+          test -n "$DEV_SSH_PRIVATE_KEY"
+
+          mkdir -p ~/.ssh
+          chmod 700 ~/.ssh
+          printf '%s\n' "$DEV_SSH_PRIVATE_KEY" | tr -d '\r' > ~/.ssh/id_ed25519
+          chmod 600 ~/.ssh/id_ed25519
+          ssh-keyscan -p "$DEV_SSH_PORT" "$DEV_SSH_HOST" >> ~/.ssh/known_hosts
+
+          deploy_image="$IMAGE:$SHORT_SHA"
+
+          ssh -i ~/.ssh/id_ed25519 -p "$DEV_SSH_PORT" "$DEV_SSH_USER@$DEV_SSH_HOST" \
+            "DEPLOY_IMAGE='$deploy_image' REMOTE_DIR='$DEV_NGINX_DOCKER_DIR' sh -s" <<'REMOTE'
+          set -eu
+
+          cd "$REMOTE_DIR"
+
+          if [ ! -f .env ]; then
+            cp .env.example .env
+          fi
+
+          if grep -q '^NGINX_IMAGE=' .env; then
+            sed -i.bak "s|^NGINX_IMAGE=.*|NGINX_IMAGE=$DEPLOY_IMAGE|" .env
+          else
+            printf '\nNGINX_IMAGE=%s\n' "$DEPLOY_IMAGE" >> .env
+          fi
+
+          if grep -q '^NGINX_TEMPLATE_MODE=' .env; then
+            true
+          elif grep -q '^NGINX_TEMPLATE_DIR=.*templates-http' .env; then
+            printf '\nNGINX_TEMPLATE_MODE=http\n' >> .env
+          elif grep -q '^NGINX_TEMPLATE_DIR=.*templates-ssl' .env; then
+            printf '\nNGINX_TEMPLATE_MODE=ssl\n' >> .env
+          else
+            printf '\nNGINX_TEMPLATE_MODE=dev-ssl\n' >> .env
+          fi
+
+          if docker compose version >/dev/null 2>&1; then
+            docker compose pull nginx
+            docker compose up -d --no-build nginx
+          else
+            docker-compose pull nginx
+            docker-compose up -d --no-build nginx
+          fi
+
+          docker exec glimpse-nginx nginx -t
+          REMOTE

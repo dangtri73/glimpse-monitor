@@ -1,0 +1,228 @@
+# Docker Hub Build and Mac Studio Deploy
+
+Use this flow before GitHub Actions automation:
+
+1. Build a specific project service image on the development machine.
+2. Push it to Docker Hub.
+3. SSH to Mac Studio.
+4. Pull the image and restart only the affected compose service.
+
+The same scripts can be called by GitHub Actions workflows.
+
+## Services
+
+Custom images:
+
+```txt
+dashboard   -> Docker Hub: <namespace>/glimpse-monitor-dashboard:<tag>
+ai-service  -> Docker Hub: <namespace>/glimpse-monitor-ai-service:<tag>
+workers     -> Docker Hub: <namespace>/glimpse-monitor-workers:<tag>
+```
+
+`workers` is one image used by both worker containers:
+
+```txt
+gateway-request-enricher
+gateway-analytics-writer
+```
+
+Infrastructure images such as Postgres, Kafka, ClickHouse, Prometheus, Grafana, Redis, and Qdrant are pulled from public upstream registries.
+
+## Build and Push From Local
+
+Login once:
+
+```bash
+docker login
+```
+
+Build and push one service:
+
+```bash
+cd /Users/vutri/Desktop/projects/Glimpse/glimpse-monitor
+
+DOCKERHUB_NAMESPACE=dangtri73 \
+IMAGE_TAG=local-latest \
+./scripts/docker-build-push.sh ai-service
+```
+
+Build and push everything:
+
+```bash
+DOCKERHUB_NAMESPACE=dangtri73 \
+IMAGE_TAG=local-latest \
+./scripts/docker-build-push.sh all
+```
+
+For Mac Studio, keep:
+
+```env
+DOCKER_PLATFORM=linux/arm64
+```
+
+For an Intel/Linux server, use:
+
+```env
+DOCKER_PLATFORM=linux/amd64
+```
+
+## Mac Studio Env
+
+Create `/Users/vutri/Desktop/projects/Glimpse/glimpse-monitor/infra/.env` on Mac Studio:
+
+```env
+DOCKERHUB_NAMESPACE=dangtri73
+IMAGE_TAG=local-latest
+IMAGE_PREFIX=glimpse-monitor
+
+DASHBOARD_PORT=3000
+MONITOR_AGENT_URL=http://host.docker.internal:8765
+MONITOR_AGENT_ADMIN_TOKEN=
+AI_SERVICE_HOST_PORT=8771
+OLLAMA_BASE_URL=http://host.docker.internal:11434
+OLLAMA_MODEL=gemma3:270m
+OLLAMA_TIMEOUT_SECONDS=60
+
+POSTGRES_DB=glimpse_monitor
+POSTGRES_USER=glimpse
+POSTGRES_PASSWORD=change-me
+POSTGRES_PORT=5433
+
+REDIS_PORT=6380
+
+KAFKA_CLUSTER_ID=MkU3OEVBNTcwNTJENDM2Qk
+KAFKA_EXTERNAL_HOST=localhost
+KAFKA_EXTERNAL_PORT=9094
+KAFKA_UI_PORT=8082
+KAFKA_LOG_RETENTION_HOURS=168
+KAFKA_LOG_SEGMENT_BYTES=1073741824
+
+CLICKHOUSE_DB=glimpse_gateway
+CLICKHOUSE_USER=glimpse
+CLICKHOUSE_PASSWORD=change-me
+CLICKHOUSE_HTTP_PORT=8123
+CLICKHOUSE_NATIVE_PORT=9000
+
+QDRANT_HTTP_PORT=6333
+QDRANT_GRPC_PORT=6334
+
+ADMINER_PORT=8081
+
+PROMETHEUS_PORT=9090
+PROMETHEUS_RETENTION_TIME=15d
+
+GRAFANA_PORT=3001
+GRAFANA_ADMIN_USER=admin
+GRAFANA_ADMIN_PASSWORD=change-me
+
+POSTGRES_BACKUP_INTERVAL_SECONDS=86400
+POSTGRES_BACKUP_RETENTION_DAYS=14
+```
+
+Do not commit real passwords.
+
+`deploy-macstudio.sh` reads `DOCKERHUB_NAMESPACE`, `IMAGE_TAG`, and `IMAGE_PREFIX` from this file when they are not provided in the shell.
+
+## Deploy on Mac Studio
+
+Login once if the Docker Hub repository is private:
+
+```bash
+docker login
+```
+
+Pull and run one service:
+
+```bash
+cd /Users/vutri/Desktop/projects/Glimpse/glimpse-monitor
+
+DOCKERHUB_NAMESPACE=dangtri73 \
+IMAGE_TAG=local-latest \
+./scripts/deploy-macstudio.sh ai-service
+```
+
+Deploy dashboard:
+
+```bash
+DOCKERHUB_NAMESPACE=dangtri73 \
+IMAGE_TAG=local-latest \
+./scripts/deploy-macstudio.sh dashboard
+```
+
+Deploy both workers:
+
+```bash
+DOCKERHUB_NAMESPACE=dangtri73 \
+IMAGE_TAG=local-latest \
+./scripts/deploy-macstudio.sh workers
+```
+
+Deploy all custom services:
+
+```bash
+DOCKERHUB_NAMESPACE=dangtri73 \
+IMAGE_TAG=local-latest \
+./scripts/deploy-macstudio.sh all
+```
+
+If `infra/.env` already contains the Docker Hub settings, this is enough:
+
+```bash
+./scripts/deploy-macstudio.sh all
+```
+
+Deploy the full stack:
+
+```bash
+DOCKERHUB_NAMESPACE=dangtri73 \
+IMAGE_TAG=local-latest \
+./scripts/deploy-macstudio.sh stack
+```
+
+## Public Gateway Routing
+
+Keep Docker ports bound to `127.0.0.1` and let Nginx expose only the routes you need.
+
+Example public routes:
+
+```txt
+https://dev.api.hftvn.com/monitor -> http://127.0.0.1:3000
+https://dev.api.hftvn.com/ai      -> http://127.0.0.1:8771
+```
+
+If `OLLAMA_BASE_URL=https://dev.api.hftvn.com/ai`, the AI service calls:
+
+```txt
+POST https://dev.api.hftvn.com/ai/api/chat
+```
+
+## GitHub Actions Plan
+
+Required GitHub Actions secrets:
+
+```txt
+DOCKERHUB_USERNAME
+DOCKERHUB_TOKEN
+```
+
+Required GitHub Actions variables:
+
+```txt
+DOCKERHUB_NAMESPACE=dangtri73
+DOCKER_PLATFORM=linux/arm64
+```
+
+Build job on the Mac Studio self-hosted runner:
+
+```bash
+echo "$DOCKERHUB_TOKEN" | docker login -u "$DOCKERHUB_USERNAME" --password-stdin
+DOCKERHUB_NAMESPACE="$DOCKERHUB_NAMESPACE" IMAGE_TAG="$GITHUB_SHA" ./scripts/docker-build-push.sh all
+```
+
+Deploy job on the Mac Studio self-hosted runner:
+
+```bash
+DOCKERHUB_NAMESPACE="$DOCKERHUB_NAMESPACE" IMAGE_TAG="$GITHUB_SHA" ./scripts/deploy-macstudio.sh all
+```
+
+Use `latest` only for manual testing. For automated deploys, prefer immutable tags such as the short GitHub SHA.

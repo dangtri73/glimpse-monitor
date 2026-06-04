@@ -1,0 +1,107 @@
+{
+  "gateway": {
+    "id": "dev-gateway",
+    "name": "Dev Gateway",
+    "role": "public-entry",
+    "host": "dev.api.hftvn.com",
+    "lanIp": null,
+    "notes": "Public SSL/Nginx gateway. Keep privileged port mapping changes behind login and approval."
+  },
+  "devices": [
+    {
+      "id": "mac-studio",
+      "name": "Mac Studio",
+      "role": "compute",
+      "lanIp": "192.168.1.3",
+      "publicHost": null,
+      "healthPath": "http://192.168.1.3:11435/api/tags",
+      "tags": ["ollama", "gpu", "lan"]
+    },
+    {
+      "id": "dev-gateway",
+      "name": "Dev Gateway",
+      "role": "gateway",
+      "lanIp": null,
+      "publicHost": "dev.api.hftvn.com",
+      "healthPath": "https://dev.api.hftvn.com/api/tags",
+      "tags": ["nginx", "public", "ssl"]
+    }
+  ],
+  "services": [
+    {
+      "id": "ollama",
+      "name": "Ollama",
+      "processPattern": "ollama",
+      "ports": [11435],
+      "startCommand": null,
+      "stopCommand": null,
+      "restartCommand": null
+    },
+    {
+      "id": "nginx",
+      "name": "Nginx Gateway",
+      "processPattern": "nginx",
+      "ports": [80, 443],
+      "startCommand": null,
+      "stopCommand": null,
+      "restartCommand": null
+    },
+    {
+      "id": "ssh",
+      "name": "SSH",
+      "processPattern": "sshd",
+      "ports": [22],
+      "startCommand": null,
+      "stopCommand": null,
+      "restartCommand": null
+    }
+  ],
+  "domainGateway": {
+    "baseCname": "gateway.glimpse-go.site",
+    "publicIp": "115.73.213.75",
+    "allowedPublicPorts": [80],
+    "allowedProtocols": ["http"],
+    "allowedHostSuffixes": [],
+    "reservedHosts": ["dev.hftvn.com", "glimpse-go.site", "www.glimpse-go.site"],
+    "targets": [
+      {
+        "id": "glimpse-dashboard",
+        "name": "Glimpse Dashboard",
+        "targetDeviceId": "dev-gateway",
+        "targetHost": "glimpse-monitor-dashboard",
+        "targetPort": 3000,
+        "protocol": "http",
+        "upstream": "http://glimpse-monitor-dashboard:3000"
+      },
+      {
+        "id": "macstudio-ollama",
+        "name": "Mac Studio Ollama",
+        "targetDeviceId": "mac-studio",
+        "targetHost": "192.168.1.3",
+        "targetPort": 11435,
+        "protocol": "http",
+        "upstream": "http://192.168.1.3:11435"
+      }
+    ],
+    "nginx": {
+      "generatedConfPath": "../../nginx-docker/nginx/generated/domain-maps.conf",
+      "testCommand": ["docker", "exec", "glimpse-nginx", "nginx", "-t"],
+      "reloadCommand": ["docker", "exec", "glimpse-nginx", "nginx", "-s", "reload"]
+    }
+  },
+  "auditEvents": [],
+  "portMappings": [
+    {
+      "id": "ollama-public",
+      "name": "Ollama Public API",
+      "publicHost": "dev.api.hftvn.com",
+      "publicPort": 443,
+      "targetDeviceId": "mac-studio",
+      "targetHost": "192.168.1.3",
+      "targetPort": 11435,
+      "protocol": "https",
+      "status": "planned",
+      "authRequired": true
+    }
+  ]
+}

@@ -1,0 +1,301 @@
+from __future__ import annotations
+
+import os
+import platform
+import re
+import shutil
+import socket
+import subprocess
+import time
+from pathlib import Path
+from typing import Any
+
+from agent_common import now_ms, run_text, safe_float, slug
+
+
+class SystemMetricsCollector:
+    def __init__(self) -> None:
+        self._previous_network: dict[str, Any] | None = None
+
+    def host(self) -> dict[str, Any]:
+        hostname = socket.gethostname()
+        return {
+            "deviceId": os.getenv("GLIMPSE_AGENT_DEVICE_ID", slug(hostname)),
+            "hostname": hostname,
+            "platform": platform.platform(),
+            "system": platform.system(),
+            "arch": platform.machine(),
+            "cpuCount": os.cpu_count() or 1,
+            "uptimeSeconds": self._uptime_seconds(),
+        }
+
+    def resources(self) -> dict[str, Any]:
+        network_totals = self._network_totals()
+        return {
+            "cpu": self._cpu(),
+            "memory": self._memory(),
+            "disk": self._disk(),
+            "network": self._network_rates(network_totals),
+        }
+
+    def top_processes(self) -> list[dict[str, Any]]:
+        raw = run_text(["ps", "-axo", "pid,comm,%cpu,%mem"])
+        rows = []
+
+        for line in raw.splitlines()[1:]:
+            parts = line.split(None, 3)
+            if len(parts) != 4:
+                continue
+            rows.append(
+                {
+                    "pid": int(parts[0]),
+                    "command": parts[1],
+                    "cpuPercent": safe_float(parts[2]),
+                    "memoryPercent": safe_float(parts[3]),
+                }
+            )
+
+        rows.sort(key=lambda item: item["cpuPercent"], reverse=True)
+        return rows[:8]
+
+    def services(self, service_configs: list[dict[str, Any]]) -> list[dict[str, Any]]:
+        raw = run_text(["ps", "-axo", "pid,comm,args"])
+        services = []
+
+        for service in service_configs:
+            pattern = service.get("processPattern") or service.get("name") or ""
+            matches = []
+            if pattern:
+                for line in raw.splitlines()[1:]:
+                    if pattern.lower() not in line.lower():
+                        continue
+                    parts = line.split(None, 2)
+                    if len(parts) >= 2:
+                        matches.append({"pid": int(parts[0]), "command": parts[1]})
+
+            services.append(
+                {
+                    "id": service.get("id"),
+                    "name": service.get("name"),
+                    "status": "running" if matches else "stopped",
+                    "processPattern": pattern,
+                    "ports": service.get("ports", []),
+                    "processes": matches[:5],
+                    "actionsEnabled": os.getenv("GLIMPSE_AGENT_ENABLE_SERVICE_ACTIONS") == "true",
+                }
+            )
+
+        return services
+
+    def connections(self, config: dict[str, Any]) -> list[dict[str, Any]]:
+        gateway_id = config.get("gateway", {}).get("id", "dev-gateway")
+        connections = []
+
+        for mapping in config.get("portMappings", []):
+            connections.append(
+                {
+                    "id": mapping.get("id"),
+                    "from": gateway_id,
+                    "to": mapping.get("targetDeviceId"),
+                    "label": f"{mapping.get('protocol', 'tcp')}:{mapping.get('publicPort')} -> {mapping.get('targetPort')}",
+                    "status": mapping.get("status", "unknown"),
+                }
+            )
+
+        return connections
+
+    def service_action(self, service_id: str, action: str, service_configs: list[dict[str, Any]]) -> dict[str, Any]:
+        services = {item.get("id"): item for item in service_configs}
+        service = services.get(service_id)
+
+        if action not in {"start", "stop", "restart"}:
+            return {"ok": False, "error": f"Unsupported action: {action}"}
+        if not service:
+            return {"ok": False, "error": f"Unknown service: {service_id}"}
+
+        enabled = os.getenv("GLIMPSE_AGENT_ENABLE_SERVICE_ACTIONS") == "true"
+        command = service.get(f"{action}Command")
+        if not enabled:
+            return {
+                "ok": False,
+                "serviceId": service_id,
+                "action": action,
+                "dryRun": True,
+                "error": "Service actions are disabled. Set GLIMPSE_AGENT_ENABLE_SERVICE_ACTIONS=true and configure explicit commands.",
+            }
+        if not command:
+            return {
+                "ok": False,
+                "serviceId": service_id,
+                "action": action,
+                "error": f"No {action}Command configured for {service_id}.",
+            }
+
+        started_at = time.time()
+        try:
+            result = subprocess.run(
+                command,
+                capture_output=True,
+                check=False,
+                shell=False,
+                text=True,
+                timeout=20,
+            )
+        except (FileNotFoundError, subprocess.SubprocessError, OSError) as exc:
+            return {"ok": False, "serviceId": service_id, "action": action, "error": str(exc)}
+
+        return {
+            "ok": result.returncode == 0,
+            "serviceId": service_id,
+            "action": action,
+            "exitCode": result.returncode,
+            "durationMs": int((time.time() - started_at) * 1000),
+            "stdout": result.stdout[-1000:],
+            "stderr": result.stderr[-1000:],
+        }
+
+    def _uptime_seconds(self) -> float | None:
+        if Path("/proc/uptime").exists():
+            raw = Path("/proc/uptime").read_text(encoding="utf-8").split()[0]
+            return safe_float(raw)
+
+        raw = run_text(["sysctl", "-n", "kern.boottime"])
+        match = re.search(r"sec = (\d+)", raw)
+        if match:
+            return max(0.0, time.time() - float(match.group(1)))
+
+        return None
+
+    def _cpu(self) -> dict[str, Any]:
+        cpu_count = os.cpu_count() or 1
+        try:
+            load1, load5, load15 = os.getloadavg()
+        except OSError:
+            load1, load5, load15 = 0.0, 0.0, 0.0
+
+        return {
+            "load1": round(load1, 2),
+            "load5": round(load5, 2),
+            "load15": round(load15, 2),
+            "loadPercent": min(100.0, round((load1 / cpu_count) * 100, 2)),
+            "cpuCount": cpu_count,
+        }
+
+    def _memory(self) -> dict[str, Any]:
+        if Path("/proc/meminfo").exists():
+            fields: dict[str, int] = {}
+            for line in Path("/proc/meminfo").read_text(encoding="utf-8").splitlines():
+                key, value = line.split(":", 1)
+                fields[key] = int(value.strip().split()[0]) * 1024
+
+            total = fields.get("MemTotal", 0)
+            available = fields.get("MemAvailable", fields.get("MemFree", 0))
+            used = max(0, total - available)
+            return _memory_payload(total, used, available)
+
+        total_raw = run_text(["sysctl", "-n", "hw.memsize"])
+        total = int(total_raw) if total_raw.isdigit() else 0
+        vm_stat = run_text(["vm_stat"])
+        page_size_match = re.search(r"page size of (\d+) bytes", vm_stat)
+        page_size = int(page_size_match.group(1)) if page_size_match else 4096
+
+        pages: dict[str, int] = {}
+        for line in vm_stat.splitlines():
+            if ":" not in line:
+                continue
+            key, raw_value = line.split(":", 1)
+            value = raw_value.strip().rstrip(".")
+            if value.replace(".", "").isdigit():
+                pages[key] = int(value.replace(".", ""))
+
+        free = pages.get("Pages free", 0) + pages.get("Pages inactive", 0)
+        speculative = pages.get("Pages speculative", 0)
+        available = (free + speculative) * page_size
+        used = max(0, total - available)
+        return _memory_payload(total, used, available)
+
+    def _disk(self) -> dict[str, Any]:
+        usage = shutil.disk_usage("/")
+        return {
+            "mount": "/",
+            "totalBytes": usage.total,
+            "usedBytes": usage.used,
+            "freeBytes": usage.free,
+            "usedPercent": round((usage.used / usage.total) * 100, 2) if usage.total else 0.0,
+        }
+
+    def _network_totals(self) -> dict[str, Any]:
+        if Path("/proc/net/dev").exists():
+            interfaces = []
+            rx_total = 0
+            tx_total = 0
+            for line in Path("/proc/net/dev").read_text(encoding="utf-8").splitlines()[2:]:
+                name, raw = line.split(":", 1)
+                parts = raw.split()
+                rx = int(parts[0])
+                tx = int(parts[8])
+                iface = name.strip()
+                if iface == "lo":
+                    continue
+                rx_total += rx
+                tx_total += tx
+                interfaces.append({"name": iface, "rxBytes": rx, "txBytes": tx})
+
+            return {"atMs": now_ms(), "rxBytes": rx_total, "txBytes": tx_total, "interfaces": interfaces}
+
+        raw = run_text(["netstat", "-ibn"])
+        interfaces_by_name: dict[str, dict[str, Any]] = {}
+        rx_total = 0
+        tx_total = 0
+
+        for line in raw.splitlines()[1:]:
+            parts = line.split()
+            if len(parts) < 10:
+                continue
+            name = parts[0]
+            if name.startswith("lo"):
+                continue
+            try:
+                rx = int(parts[6])
+                tx = int(parts[9])
+            except ValueError:
+                continue
+            interfaces_by_name[name] = {"name": name, "rxBytes": rx, "txBytes": tx}
+
+        for item in interfaces_by_name.values():
+            rx_total += item["rxBytes"]
+            tx_total += item["txBytes"]
+
+        return {
+            "atMs": now_ms(),
+            "rxBytes": rx_total,
+            "txBytes": tx_total,
+            "interfaces": list(interfaces_by_name.values()),
+        }
+
+    def _network_rates(self, current: dict[str, Any]) -> dict[str, Any]:
+        previous = self._previous_network
+        self._previous_network = current
+
+        if not previous:
+            return {**current, "rxBytesPerSecond": 0, "txBytesPerSecond": 0}
+
+        elapsed = max(1, current["atMs"] - previous["atMs"]) / 1000
+        rx_rate = max(0, current["rxBytes"] - previous["rxBytes"]) / elapsed
+        tx_rate = max(0, current["txBytes"] - previous["txBytes"]) / elapsed
+
+        return {
+            **current,
+            "rxBytesPerSecond": round(rx_rate, 2),
+            "txBytesPerSecond": round(tx_rate, 2),
+        }
+
+
+def _memory_payload(total: int, used: int, available: int) -> dict[str, Any]:
+    percent = (used / total * 100) if total else 0.0
+    return {
+        "totalBytes": total,
+        "usedBytes": used,
+        "availableBytes": available,
+        "usedPercent": round(percent, 2),
+    }

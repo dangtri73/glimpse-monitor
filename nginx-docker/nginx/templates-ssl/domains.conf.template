@@ -1,0 +1,62 @@
+map $http_upgrade $connection_upgrade {
+    default upgrade;
+    '' close;
+}
+
+server {
+    listen 80;
+    server_name ${DEV_DOMAIN};
+
+    return 301 https://$host$request_uri;
+}
+
+server {
+    listen 443 ssl;
+    server_name ${DEV_DOMAIN};
+
+    ssl_certificate ${DEV_SSL_CERTIFICATE};
+    ssl_certificate_key ${DEV_SSL_CERTIFICATE_KEY};
+    include /etc/nginx/snippets/ssl.conf;
+
+    client_max_body_size 25m;
+
+    location = /nginx-health {
+        access_log off;
+        return 200 "ok\n";
+    }
+
+    location / {
+        proxy_pass ${DEFAULT_UPSTREAM};
+        include /etc/nginx/snippets/proxy-headers.conf;
+    }
+}
+
+server {
+    listen 80;
+    server_name ${GLIMPSE_DOMAIN} ${GLIMPSE_WWW_DOMAIN};
+
+    return 301 https://$host$request_uri;
+}
+
+server {
+    listen 443 ssl;
+    server_name ${GLIMPSE_DOMAIN} ${GLIMPSE_WWW_DOMAIN};
+
+    ssl_certificate ${GLIMPSE_SSL_CERTIFICATE};
+    ssl_certificate_key ${GLIMPSE_SSL_CERTIFICATE_KEY};
+    include /etc/nginx/snippets/ssl.conf;
+
+    client_max_body_size 25m;
+
+    location = /nginx-health {
+        access_log off;
+        return 200 "ok\n";
+    }
+
+    location / {
+        proxy_pass ${DEFAULT_UPSTREAM};
+        include /etc/nginx/snippets/proxy-headers.conf;
+    }
+}
+
+include /etc/nginx/generated/*.conf;

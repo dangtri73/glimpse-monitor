@@ -1,0 +1,11 @@
+.env
+.git
+.github
+certs/*
+!certs/.gitkeep
+!certs/cloudflare/
+!certs/cloudflare/.gitkeep
+!certs/letsencrypt/
+!certs/letsencrypt/.gitkeep
+nginx/generated/*
+!nginx/generated/.gitkeep
