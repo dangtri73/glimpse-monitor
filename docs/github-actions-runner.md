@@ -192,3 +192,15 @@ This path should match the GitHub Actions variable:
 ```txt
 DEV_NGINX_DOCKER_DIR=/Users/tri/nginx-docker
 ```
+
+If deploy fails with a permission error such as:
+
+```txt
+mkdir: /Users/vutri: Permission denied
+```
+
+the repository variable is still pointing to the Mac Studio checkout path. Change `DEV_NGINX_DOCKER_DIR` to the dev-server runtime path:
+
+```txt
+/Users/tri/nginx-docker
+```

@@ -145,9 +145,23 @@ jobs:
 
           deploy_image="$IMAGE:$SHORT_SHA"
 
+          case "$DEV_NGINX_DOCKER_DIR" in
+            /Users/tri/*) ;;
+            *)
+              echo "ERROR: DEV_NGINX_DOCKER_DIR must be a dev-server path owned by tri, for example /Users/tri/nginx-docker." >&2
+              echo "Current value: $DEV_NGINX_DOCKER_DIR" >&2
+              exit 1
+              ;;
+          esac
+
           ssh -i ~/.ssh/id_ed25519 -p "$DEV_SSH_PORT" "$DEV_SSH_USER@$DEV_SSH_HOST" \
             "REMOTE_DIR='$DEV_NGINX_DOCKER_DIR' sh -s" <<'REMOTE_PREP'
           set -eu
+          if [ ! -d "$REMOTE_DIR" ]; then
+            echo "ERROR: remote Nginx runtime directory does not exist: $REMOTE_DIR" >&2
+            echo "Set GitHub variable DEV_NGINX_DOCKER_DIR=/Users/tri/nginx-docker or create/migrate that directory on the dev server." >&2
+            exit 1
+          fi
           mkdir -p "$REMOTE_DIR/scripts"
           REMOTE_PREP
 
