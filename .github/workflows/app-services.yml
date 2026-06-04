@@ -84,17 +84,7 @@ jobs:
           echo "TARGETS=$targets" >> "$GITHUB_ENV"
           echo "Targets: $targets"
 
-      - name: Prepare Docker config
-        if: env.TARGETS != 'none'
-        run: |
-          set -eu
-          docker_config="${RUNNER_TEMP:-$PWD/.runner-temp}/docker-config"
-          mkdir -p "$docker_config"
-          chmod 700 "$docker_config"
-          printf '{"auths":{}}\n' > "$docker_config/config.json"
-          echo "DOCKER_CONFIG=$docker_config" >> "$GITHUB_ENV"
-
-      - name: Log in to Docker Hub
+      - name: Configure Docker Hub auth
         if: env.TARGETS != 'none'
         env:
           DOCKERHUB_USERNAME: ${{ secrets.DOCKERHUB_USERNAME }}
@@ -103,12 +93,19 @@ jobs:
           set -eu
           test -n "$DOCKERHUB_USERNAME"
           test -n "$DOCKERHUB_TOKEN"
-          echo "$DOCKERHUB_TOKEN" | docker login -u "$DOCKERHUB_USERNAME" --password-stdin
+          docker_config="${RUNNER_TEMP:-$PWD/.runner-temp}/docker-config"
+          mkdir -p "$docker_config"
+          chmod 700 "$docker_config"
+          auth="$(printf '%s:%s' "$DOCKERHUB_USERNAME" "$DOCKERHUB_TOKEN" | base64 | tr -d '\n')"
+          printf '{"auths":{"https://index.docker.io/v1/":{"auth":"%s"}}}\n' "$auth" > "$docker_config/config.json"
+          chmod 600 "$docker_config/config.json"
+          echo "DOCKER_CONFIG=$docker_config" >> "$GITHUB_ENV"
 
       - name: Build and push changed service images
         if: env.TARGETS != 'none'
         run: |
           set -eu
+          test -f "$DOCKER_CONFIG/config.json"
           for target in $TARGETS; do
             DOCKERHUB_NAMESPACE="$DOCKERHUB_NAMESPACE" \
               IMAGE_PREFIX="$IMAGE_PREFIX" \

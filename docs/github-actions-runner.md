@@ -122,7 +122,7 @@ If `docker login` fails in GitHub Actions with this macOS Keychain error:
 User interaction is not allowed. (-25308)
 ```
 
-the runner service is trying to save credentials through the desktop credential helper. The workflows avoid that by setting `DOCKER_CONFIG` to a temporary CI directory before `docker login`.
+the runner service is trying to save credentials through the desktop credential helper. The workflows avoid that by writing Docker Hub auth into a temporary CI `DOCKER_CONFIG` instead of running `docker login`.
 
 ## Workflow Reruns
 
