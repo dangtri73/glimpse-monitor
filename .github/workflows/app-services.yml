@@ -33,6 +33,7 @@ env:
   DOCKERHUB_NAMESPACE: ${{ vars.DOCKERHUB_NAMESPACE || 'dangtri73' }}
   IMAGE_PREFIX: ${{ vars.IMAGE_PREFIX || 'glimpse-monitor' }}
   MACSTUDIO_ENV_FILE: ${{ vars.MACSTUDIO_ENV_FILE || '/Users/vutri/Desktop/projects/Glimpse/glimpse-monitor/infra/.env' }}
+  MACSTUDIO_DOCKER_SOCKET: ${{ vars.MACSTUDIO_DOCKER_SOCKET || '' }}
 
 jobs:
   build-and-deploy:
@@ -100,6 +101,53 @@ jobs:
           printf '{"auths":{"https://index.docker.io/v1/":{"auth":"%s"}}}\n' "$auth" > "$docker_config/config.json"
           chmod 600 "$docker_config/config.json"
           echo "DOCKER_CONFIG=$docker_config" >> "$GITHUB_ENV"
+
+      - name: Configure Docker daemon
+        if: env.TARGETS != 'none'
+        run: |
+          set -eu
+
+          if docker info >/dev/null 2>&1; then
+            docker info --format 'Docker server: {{.ServerVersion}}'
+            exit 0
+          fi
+
+          for socket in \
+            "$MACSTUDIO_DOCKER_SOCKET" \
+            "$HOME/.docker/run/docker.sock" \
+            "$HOME/.colima/default/docker.sock" \
+            "/Users/admin/.docker/run/docker.sock" \
+            "/Users/admin/.colima/default/docker.sock"
+          do
+            [ -n "$socket" ] || continue
+            case "$socket" in
+              unix://*)
+                socket_path="${socket#unix://}"
+                docker_host="$socket"
+                ;;
+              *)
+                socket_path="$socket"
+                docker_host="unix://$socket"
+                ;;
+            esac
+            [ -S "$socket_path" ] || [ -e "$socket_path" ] || continue
+
+            export DOCKER_HOST="$docker_host"
+            if docker info >/dev/null 2>&1; then
+              echo "DOCKER_HOST=$DOCKER_HOST" >> "$GITHUB_ENV"
+              docker info --format 'Docker server: {{.ServerVersion}}'
+              exit 0
+            fi
+          done
+
+          echo "ERROR: Docker daemon is not reachable from the runner service." >&2
+          echo "User: $(id)" >&2
+          echo "HOME: $HOME" >&2
+          docker context ls >&2 || true
+          ls -la "$HOME/.docker" >&2 || true
+          ls -la "$HOME/.colima/default" >&2 || true
+          ls -la /var/run/docker.sock >&2 || true
+          exit 1
 
       - name: Build and push changed service images
         if: env.TARGETS != 'none'

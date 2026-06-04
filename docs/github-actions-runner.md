@@ -116,6 +116,27 @@ docker run --rm \
 
 If Docker exits with code `130`, the Docker process was interrupted. Check Docker Desktop or Colima, then rerun the build.
 
+If GitHub Actions fails with `/var/run/docker.sock: permission denied`, the runner service is using the wrong Docker socket. The workflows try these macOS sockets automatically:
+
+```txt
+~/.docker/run/docker.sock
+~/.colima/default/docker.sock
+/Users/admin/.docker/run/docker.sock
+/Users/admin/.colima/default/docker.sock
+```
+
+To inspect the socket from the working terminal:
+
+```bash
+docker context inspect --format '{{ (index .Endpoints "docker").Host }}'
+```
+
+If auto-detection still fails, set this GitHub Actions repository variable to the socket path:
+
+```txt
+MACSTUDIO_DOCKER_SOCKET=/Users/admin/.docker/run/docker.sock
+```
+
 If `docker login` fails in GitHub Actions with this macOS Keychain error:
 
 ```txt
