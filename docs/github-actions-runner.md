@@ -116,6 +116,14 @@ docker run --rm \
 
 If Docker exits with code `130`, the Docker process was interrupted. Check Docker Desktop or Colima, then rerun the build.
 
+If `docker login` fails in GitHub Actions with this macOS Keychain error:
+
+```txt
+User interaction is not allowed. (-25308)
+```
+
+the runner service is trying to save credentials through the desktop credential helper. The workflows avoid that by setting `DOCKER_CONFIG` to a temporary CI directory before `docker login`.
+
 ## Workflow Reruns
 
 Manual app-service deploy:

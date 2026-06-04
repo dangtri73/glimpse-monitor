@@ -84,6 +84,16 @@ jobs:
           echo "TARGETS=$targets" >> "$GITHUB_ENV"
           echo "Targets: $targets"
 
+      - name: Prepare Docker config
+        if: env.TARGETS != 'none'
+        run: |
+          set -eu
+          docker_config="${RUNNER_TEMP:-$PWD/.runner-temp}/docker-config"
+          mkdir -p "$docker_config"
+          chmod 700 "$docker_config"
+          printf '{"auths":{}}\n' > "$docker_config/config.json"
+          echo "DOCKER_CONFIG=$docker_config" >> "$GITHUB_ENV"
+
       - name: Log in to Docker Hub
         if: env.TARGETS != 'none'
         env:

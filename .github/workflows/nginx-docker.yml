@@ -34,6 +34,15 @@ jobs:
           echo "SHORT_SHA=$short_sha" >> "$GITHUB_ENV"
           echo "IMAGE=$image" >> "$GITHUB_ENV"
 
+      - name: Prepare Docker config
+        run: |
+          set -eu
+          docker_config="${RUNNER_TEMP:-$PWD/.runner-temp}/docker-config"
+          mkdir -p "$docker_config"
+          chmod 700 "$docker_config"
+          printf '{"auths":{}}\n' > "$docker_config/config.json"
+          echo "DOCKER_CONFIG=$docker_config" >> "$GITHUB_ENV"
+
       - name: Log in to Docker Hub
         env:
           DOCKERHUB_USERNAME: ${{ secrets.DOCKERHUB_USERNAME }}
