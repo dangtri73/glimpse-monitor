@@ -363,7 +363,12 @@ restart_dashboard_for_agent_url() {
     return 0
   fi
 
-  compose up -d --no-build --force-recreate dashboard
+  dashboard_image="$(docker inspect -f '{{.Config.Image}}' "$container_id" 2>/dev/null || true)"
+  if [ -n "$dashboard_image" ]; then
+    upsert_env DASHBOARD_IMAGE "$dashboard_image"
+  fi
+
+  compose up -d --no-build --no-deps --force-recreate dashboard
 }
 
 wait_for_agent_health() {
@@ -456,6 +461,7 @@ upsert_env() {
 }
 
 sync_image_env() {
+  target="${1:-all}"
   load_env
 
   namespace="${DOCKERHUB_NAMESPACE:-dangtri73}"
@@ -465,9 +471,23 @@ sync_image_env() {
   upsert_env DOCKERHUB_NAMESPACE "$namespace"
   upsert_env IMAGE_PREFIX "$prefix"
   upsert_env IMAGE_TAG "$tag"
-  upsert_env DASHBOARD_IMAGE "$namespace/$prefix-dashboard:$tag"
-  upsert_env AI_SERVICE_IMAGE "$namespace/$prefix-ai-service:$tag"
-  upsert_env WORKERS_IMAGE "$namespace/$prefix-workers:$tag"
+
+  case "$target" in
+    dashboard)
+      upsert_env DASHBOARD_IMAGE "$namespace/$prefix-dashboard:$tag"
+      ;;
+    ai-service)
+      upsert_env AI_SERVICE_IMAGE "$namespace/$prefix-ai-service:$tag"
+      ;;
+    workers)
+      upsert_env WORKERS_IMAGE "$namespace/$prefix-workers:$tag"
+      ;;
+    all|stack)
+      upsert_env DASHBOARD_IMAGE "$namespace/$prefix-dashboard:$tag"
+      upsert_env AI_SERVICE_IMAGE "$namespace/$prefix-ai-service:$tag"
+      upsert_env WORKERS_IMAGE "$namespace/$prefix-workers:$tag"
+      ;;
+  esac
 }
 
 services_for_target() {
@@ -485,7 +505,6 @@ deploy_target() {
   target="$1"
 
   if [ "$target" = "agent" ]; then
-    sync_image_env
     echo "Deploy target: $target"
     echo "Runtime dir:    $SCRIPT_DIR"
     echo "Env file:       $SCRIPT_DIR/.env"
@@ -499,7 +518,7 @@ deploy_target() {
     exit 1
   }
 
-  sync_image_env
+  sync_image_env "$target"
 
   echo "Deploy target: $target"
   echo "Runtime dir:    $SCRIPT_DIR"
@@ -512,8 +531,12 @@ deploy_target() {
   else
     # shellcheck disable=SC2086
     compose pull $services
-    # shellcheck disable=SC2086
-    compose up -d --no-build $services
+    if [ "$target" = "dashboard" ]; then
+      compose up -d --no-build --no-deps dashboard
+    else
+      # shellcheck disable=SC2086
+      compose up -d --no-build $services
+    fi
   fi
 
   if [ "$target" = "all" ] || [ "$target" = "stack" ]; then

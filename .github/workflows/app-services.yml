@@ -198,6 +198,16 @@ jobs:
         run: |
           set -eu
           for target in $TARGETS; do
+            [ "$target" != "agent" ] || continue
+            DOCKERHUB_NAMESPACE="$DOCKERHUB_NAMESPACE" \
+              IMAGE_PREFIX="$IMAGE_PREFIX" \
+              IMAGE_TAG="$IMAGE_TAG" \
+              RUNTIME_DIR="$MACSTUDIO_RUNTIME_DIR" \
+              ENV_FILE="$MACSTUDIO_ENV_FILE" \
+              ./scripts/deploy-macstudio.sh "$target"
+          done
+          for target in $TARGETS; do
+            [ "$target" = "agent" ] || continue
             DOCKERHUB_NAMESPACE="$DOCKERHUB_NAMESPACE" \
               IMAGE_PREFIX="$IMAGE_PREFIX" \
               IMAGE_TAG="$IMAGE_TAG" \

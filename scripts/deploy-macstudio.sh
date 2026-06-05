@@ -141,9 +141,47 @@ IMAGE_PREFIX="${IMAGE_PREFIX:-glimpse-monitor}"
 IMAGE_TAG="${IMAGE_TAG:-$(env_value IMAGE_TAG)}"
 IMAGE_TAG="${IMAGE_TAG:-latest}"
 
-export DASHBOARD_IMAGE="$NAMESPACE/$IMAGE_PREFIX-dashboard:$IMAGE_TAG"
-export AI_SERVICE_IMAGE="$NAMESPACE/$IMAGE_PREFIX-ai-service:$IMAGE_TAG"
-export WORKERS_IMAGE="$NAMESPACE/$IMAGE_PREFIX-workers:$IMAGE_TAG"
+if target_needs_images "$TARGET"; then
+  case "$TARGET" in
+    dashboard)
+      export DASHBOARD_IMAGE="$NAMESPACE/$IMAGE_PREFIX-dashboard:$IMAGE_TAG"
+      ;;
+    ai-service)
+      export AI_SERVICE_IMAGE="$NAMESPACE/$IMAGE_PREFIX-ai-service:$IMAGE_TAG"
+      ;;
+    workers)
+      export WORKERS_IMAGE="$NAMESPACE/$IMAGE_PREFIX-workers:$IMAGE_TAG"
+      ;;
+    all|stack)
+      export DASHBOARD_IMAGE="$NAMESPACE/$IMAGE_PREFIX-dashboard:$IMAGE_TAG"
+      export AI_SERVICE_IMAGE="$NAMESPACE/$IMAGE_PREFIX-ai-service:$IMAGE_TAG"
+      export WORKERS_IMAGE="$NAMESPACE/$IMAGE_PREFIX-workers:$IMAGE_TAG"
+      ;;
+  esac
+fi
+
+export_target_images() {
+  export DOCKERHUB_NAMESPACE="$NAMESPACE"
+  export IMAGE_PREFIX="$IMAGE_PREFIX"
+  export IMAGE_TAG="$IMAGE_TAG"
+
+  case "$TARGET" in
+    dashboard)
+      export DASHBOARD_IMAGE="$NAMESPACE/$IMAGE_PREFIX-dashboard:$IMAGE_TAG"
+      ;;
+    ai-service)
+      export AI_SERVICE_IMAGE="$NAMESPACE/$IMAGE_PREFIX-ai-service:$IMAGE_TAG"
+      ;;
+    workers)
+      export WORKERS_IMAGE="$NAMESPACE/$IMAGE_PREFIX-workers:$IMAGE_TAG"
+      ;;
+    all|stack)
+      export DASHBOARD_IMAGE="$NAMESPACE/$IMAGE_PREFIX-dashboard:$IMAGE_TAG"
+      export AI_SERVICE_IMAGE="$NAMESPACE/$IMAGE_PREFIX-ai-service:$IMAGE_TAG"
+      export WORKERS_IMAGE="$NAMESPACE/$IMAGE_PREFIX-workers:$IMAGE_TAG"
+      ;;
+  esac
+}
 
 compose() {
   env_file="$(resolve_path "$ENV_FILE")"
@@ -154,12 +192,7 @@ compose() {
     . "$env_file"
     set +a
   fi
-  export DOCKERHUB_NAMESPACE="$NAMESPACE"
-  export IMAGE_PREFIX="$IMAGE_PREFIX"
-  export IMAGE_TAG="$IMAGE_TAG"
-  export DASHBOARD_IMAGE="$NAMESPACE/$IMAGE_PREFIX-dashboard:$IMAGE_TAG"
-  export AI_SERVICE_IMAGE="$NAMESPACE/$IMAGE_PREFIX-ai-service:$IMAGE_TAG"
-  export WORKERS_IMAGE="$NAMESPACE/$IMAGE_PREFIX-workers:$IMAGE_TAG"
+  export_target_images
   if docker compose version >/dev/null 2>&1; then
     docker compose -f "$compose_file" "$@"
   elif command -v docker-compose >/dev/null 2>&1; then
@@ -198,9 +231,11 @@ if [ -n "$RUNTIME_DIR" ]; then
 fi
 echo "Compose file:   $(resolve_path "$COMPOSE_FILE")"
 echo "Env file:       $(resolve_path "$ENV_FILE")"
-echo "Dashboard image:  $DASHBOARD_IMAGE"
-echo "AI service image: $AI_SERVICE_IMAGE"
-echo "Workers image:    $WORKERS_IMAGE"
+if target_needs_images "$TARGET"; then
+  [ -z "${DASHBOARD_IMAGE:-}" ] || echo "Dashboard image:  $DASHBOARD_IMAGE"
+  [ -z "${AI_SERVICE_IMAGE:-}" ] || echo "AI service image: $AI_SERVICE_IMAGE"
+  [ -z "${WORKERS_IMAGE:-}" ] || echo "Workers image:    $WORKERS_IMAGE"
+fi
 
 if [ "$TARGET" = "agent" ]; then
   [ -n "$RUNTIME_DIR" ] || { echo "ERROR: RUNTIME_DIR is required for agent deploy." >&2; exit 1; }
@@ -214,8 +249,12 @@ elif [ "$TARGET" = "stack" ]; then
 else
   # shellcheck disable=SC2086
   compose pull $SERVICES
-  # shellcheck disable=SC2086
-  compose up -d --no-build $SERVICES
+  if [ "$TARGET" = "dashboard" ]; then
+    compose up -d --no-build --no-deps dashboard
+  else
+    # shellcheck disable=SC2086
+    compose up -d --no-build $SERVICES
+  fi
   if [ "$TARGET" = "all" ] && [ -n "$RUNTIME_DIR" ]; then
     "$RUNTIME_DIR/deploy.sh" agent
   fi
