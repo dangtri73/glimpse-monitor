@@ -69,6 +69,14 @@ If the GitHub runner does not have a GUI launchd domain, the deploy script falls
 GLIMPSE_AGENT_LAUNCHD_DOMAIN=user/501
 ```
 
+Deploy stops known Glimpse `launchd` jobs before starting the new agent. It can also stop an existing Python `server.py` process on the configured agent port:
+
+```env
+GLIMPSE_AGENT_REPLACE_PORT_OWNER=true
+```
+
+If another unknown process owns `GLIMPSE_AGENT_PORT`, deploy fails and prints `lsof` output instead of stopping it.
+
 Restart or stop:
 
 ```sh

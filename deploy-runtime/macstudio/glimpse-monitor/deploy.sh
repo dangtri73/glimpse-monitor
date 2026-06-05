@@ -115,11 +115,26 @@ require_agent_source() {
 agent_health_url() {
   load_env
   host="${GLIMPSE_AGENT_HOST:-127.0.0.1}"
-  port="${GLIMPSE_AGENT_PORT:-8765}"
+  port="$(agent_port)"
   if [ "$host" = "0.0.0.0" ] || [ "$host" = "::" ]; then
     host="127.0.0.1"
   fi
   echo "http://$host:$port/health"
+}
+
+agent_port() {
+  load_env
+  echo "${GLIMPSE_AGENT_PORT:-8765}"
+}
+
+agent_launch_domains() {
+  load_env
+  uid="$(id -u)"
+  if [ -n "${GLIMPSE_AGENT_LAUNCHD_DOMAIN:-}" ]; then
+    echo "$GLIMPSE_AGENT_LAUNCHD_DOMAIN"
+  fi
+  echo "gui/$uid"
+  echo "user/$uid"
 }
 
 generate_agent_plist() {
@@ -203,6 +218,64 @@ agent_tail_logs() {
   fi
 }
 
+agent_port_owners() {
+  port="$(agent_port)"
+  if command -v lsof >/dev/null 2>&1; then
+    lsof -nP -iTCP:"$port" -sTCP:LISTEN 2>/dev/null || true
+  else
+    echo "lsof is not available; cannot inspect port $port" >&2
+  fi
+}
+
+stop_agent_launchd_jobs() {
+  label="$(agent_label)"
+  for domain in $(agent_launch_domains | awk '!seen[$0]++'); do
+    launchctl bootout "$domain/$label" >/dev/null 2>&1 || true
+  done
+}
+
+stop_replaceable_agent_port_owner() {
+  load_env
+  replace="${GLIMPSE_AGENT_REPLACE_PORT_OWNER:-true}"
+  [ "$replace" = "true" ] || return 0
+
+  port="$(agent_port)"
+  if ! command -v lsof >/dev/null 2>&1; then
+    return 0
+  fi
+
+  pids="$(lsof -nP -tiTCP:"$port" -sTCP:LISTEN 2>/dev/null || true)"
+  [ -n "$pids" ] || return 0
+
+  for pid in $pids; do
+    command="$(ps -p "$pid" -o command= 2>/dev/null || true)"
+    case "$command" in
+      *python*server.py*|*Python*server.py*)
+        echo "Stopping existing Python agent process on port $port: pid=$pid command=$command"
+        kill "$pid" >/dev/null 2>&1 || true
+        ;;
+      *)
+        echo "Port $port is owned by an unknown process; not stopping it automatically." >&2
+        echo "pid=$pid command=$command" >&2
+        return 1
+        ;;
+    esac
+  done
+
+  sleep 2
+}
+
+require_agent_port_available() {
+  port="$(agent_port)"
+  owners="$(agent_port_owners)"
+  if [ -n "$owners" ]; then
+    echo "ERROR: agent port $port is still in use." >&2
+    echo "$owners" >&2
+    echo "Stop the process above or set GLIMPSE_AGENT_PORT to a free port, then rerun deploy." >&2
+    return 1
+  fi
+}
+
 wait_for_agent_health() {
   url="$(agent_health_url)"
   attempts="${1:-30}"
@@ -223,6 +296,8 @@ wait_for_agent_health() {
   launchctl print "$(agent_launch_target)/$(agent_label)" >&2 || true
   echo "--- verbose health check ---" >&2
   curl -v --max-time 3 "$url" >&2 || true
+  echo "--- port owners ---" >&2
+  agent_port_owners >&2
   agent_tail_logs >&2
   return 1
 }
@@ -238,7 +313,10 @@ deploy_agent() {
   echo "Agent log dir:        $(agent_log_dir)"
   echo "Agent plist:          $plist"
 
-  launchctl bootout "$target/$label" >/dev/null 2>&1 || true
+  stop_agent_launchd_jobs
+  stop_replaceable_agent_port_owner
+  require_agent_port_available
+
   launchctl bootstrap "$target" "$plist"
   launchctl kickstart -k "$target/$label"
 
@@ -270,9 +348,7 @@ agent_logs() {
 }
 
 stop_agent() {
-  label="$(agent_label)"
-  target="$(agent_launch_target)"
-  launchctl bootout "$target/$label" >/dev/null 2>&1 || true
+  stop_agent_launchd_jobs
 }
 
 upsert_env() {
