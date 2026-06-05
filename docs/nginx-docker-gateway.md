@@ -12,6 +12,16 @@ Internet -> dev server Docker Nginx -> Mac Studio service
 
 The dev server owns public ports `80` and `443`. Application services stay on Mac Studio or another internal machine. For SSH and Mac Studio connection details, see `../../docs/connections.md`.
 
+Use this gateway for HTTP services only:
+
+```txt
+dashboard.glimpse-go.site  -> http://<macstudio-lan-ip>:3000
+ai.glimpse-go.site         -> http://<macstudio-lan-ip>:8771
+ollama.glimpse-go.site     -> http://<macstudio-lan-ip>:11435
+```
+
+Do not route Postgres, Kafka, ClickHouse, Redis, Qdrant, Prometheus, Grafana, Adminer, or Kafka UI through public Nginx. Use SSH tunnels for those private ports.
+
 ## Current Domains
 
 ```txt
@@ -23,10 +33,20 @@ www.glimpse-go.site
 The default upstream is:
 
 ```env
-DEFAULT_UPSTREAM=http://192.168.1.3:11435
+MACSTUDIO_LAN_IP=<macstudio-lan-ip>
+DEFAULT_UPSTREAM=http://${MACSTUDIO_LAN_IP}:11435
+DASHBOARD_UPSTREAM=http://${MACSTUDIO_LAN_IP}:3000
+AI_UPSTREAM=http://${MACSTUDIO_LAN_IP}:8771
+OLLAMA_UPSTREAM=http://${MACSTUDIO_LAN_IP}:11435
 ```
 
-Change `DEFAULT_UPSTREAM` in `glimpse-monitor/nginx-docker/.env` when the gateway should proxy to a different Mac Studio service.
+Change `MACSTUDIO_LAN_IP` in `/Users/tri/nginx-docker/.env` when the Mac Studio LAN IP changes, then run `./deploy.sh deploy`. The deploy script rewrites the upstream URLs from that one value.
+
+For GitHub Actions deploys, set the repository variable with the same value:
+
+```txt
+MACSTUDIO_LAN_IP=<macstudio-lan-ip>
+```
 
 The examples below assume the current dev-server runtime directory:
 
@@ -86,6 +106,9 @@ Use this current `.env` baseline:
 DEV_DOMAIN=dev.api.hftvn.com
 GLIMPSE_DOMAIN=glimpse-go.site
 GLIMPSE_WWW_DOMAIN=www.glimpse-go.site
+DASHBOARD_DOMAIN=dashboard.glimpse-go.site
+AI_DOMAIN=ai.glimpse-go.site
+OLLAMA_DOMAIN=ollama.glimpse-go.site
 
 NGINX_IMAGE=dangtri73/glimpse-nginx:latest
 NGINX_TEMPLATE_MODE=dev-ssl
@@ -98,7 +121,11 @@ GLIMPSE_SSL_HOST_DIR=./certs/cloudflare
 GLIMPSE_SSL_CERTIFICATE=/etc/ssl/cloudflare/glimpse-go.site/fullchain.pem
 GLIMPSE_SSL_CERTIFICATE_KEY=/etc/ssl/cloudflare/glimpse-go.site/privkey.pem
 
-DEFAULT_UPSTREAM=http://192.168.1.3:11435
+MACSTUDIO_LAN_IP=<macstudio-lan-ip>
+DEFAULT_UPSTREAM=http://${MACSTUDIO_LAN_IP}:11435
+DASHBOARD_UPSTREAM=http://${MACSTUDIO_LAN_IP}:3000
+AI_UPSTREAM=http://${MACSTUDIO_LAN_IP}:8771
+OLLAMA_UPSTREAM=http://${MACSTUDIO_LAN_IP}:11435
 ```
 
 ## Copy The Existing Dev API Certificate
@@ -168,6 +195,45 @@ curl -I http://glimpse-go.site
 curl -I https://dev.api.hftvn.com
 ```
 
+## Long LLM Responses
+
+Ollama chat requests can take longer than normal HTTP API calls, especially with larger models and `stream: false`.
+
+Prefer streaming for manual tests:
+
+```json
+{
+  "model": "deepseek-v2:16b",
+  "messages": [
+    {
+      "role": "user",
+      "content": "why is the sky blue?"
+    }
+  ],
+  "stream": true
+}
+```
+
+When `stream` is `false`, Ollama does not send the response until generation is complete. That can hit the client timeout before Nginx or Ollama fails. In Postman, set `Settings -> General -> Request timeout in ms` to `0` for no client timeout, or use a larger value such as `600000`.
+
+The Nginx image is configured for long upstream responses:
+
+```nginx
+proxy_read_timeout 3600s;
+proxy_send_timeout 3600s;
+proxy_buffering off;
+```
+
+After changing Nginx timeout config, build and deploy the Nginx image again:
+
+```bash
+git add nginx-docker docs
+git commit -m "Tune gateway timeouts for long chat responses"
+git push origin main
+```
+
+If the hostname is proxied through Cloudflare and a non-streaming request takes more than Cloudflare's proxy read timeout, Nginx cannot fix that. Use `stream: true`, reduce the model/output size, use a DNS-only hostname for long-running private tests, or call the Mac Studio service through an SSH tunnel.
+
 ## Add HTTPS For Glimpse
 
 Create a Cloudflare Origin Certificate for:
@@ -208,8 +274,11 @@ curl -k -I --resolve www.glimpse-go.site:443:127.0.0.1 https://www.glimpse-go.si
 Cloudflare DNS should use proxied `A` records:
 
 ```txt
-A    @      <dev-server-public-ip>
-A    www    <dev-server-public-ip>
+A    @          <dev-server-public-ip>
+A    www        <dev-server-public-ip>
+A    dashboard  <dev-server-public-ip>
+A    ai         <dev-server-public-ip>
+A    ollama     <dev-server-public-ip>
 ```
 
 Use Cloudflare SSL/TLS mode `Full (strict)` after the origin certificate is installed.
@@ -248,3 +317,32 @@ docker-compose up -d
 ```
 
 For certificate add, update, remove, and backup operations, see `docs/nginx-cert-management.md`.
+
+## Private Service Access
+
+From the same LAN, tunnel directly to Mac Studio:
+
+```bash
+ssh -L 8123:127.0.0.1:8123 admin@<macstudio-lan-ip>
+ssh -L 9000:127.0.0.1:9000 admin@<macstudio-lan-ip>
+ssh -L 5433:127.0.0.1:5433 admin@<macstudio-lan-ip>
+ssh -L 8082:127.0.0.1:8082 admin@<macstudio-lan-ip>
+```
+
+From outside the LAN, use the dev server as a jump host:
+
+```bash
+ssh -J tri@dev.hftvn.com -L 8123:127.0.0.1:8123 admin@<macstudio-lan-ip>
+ssh -J tri@dev.hftvn.com -L 9000:127.0.0.1:9000 admin@<macstudio-lan-ip>
+ssh -J tri@dev.hftvn.com -L 5433:127.0.0.1:5433 admin@<macstudio-lan-ip>
+ssh -J tri@dev.hftvn.com -L 8082:127.0.0.1:8082 admin@<macstudio-lan-ip>
+```
+
+Then connect local tools to `localhost`:
+
+```txt
+ClickHouse HTTP: localhost:8123
+ClickHouse TCP:  localhost:9000
+Postgres:        localhost:5433
+Kafka UI:        http://localhost:8082
+```

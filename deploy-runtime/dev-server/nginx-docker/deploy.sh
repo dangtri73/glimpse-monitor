@@ -80,9 +80,44 @@ upsert_env() {
   fi
 }
 
+env_value() {
+  key="$1"
+  file=".env"
+
+  if [ ! -f "$file" ]; then
+    return 0
+  fi
+
+  sed -n "s|^$key=||p" "$file" | tail -n 1
+}
+
+sync_macstudio_upstreams() {
+  ensure_env
+
+  macstudio_lan_ip="${MACSTUDIO_LAN_IP:-$(env_value MACSTUDIO_LAN_IP)}"
+  if [ -z "$macstudio_lan_ip" ]; then
+    echo "ERROR: MACSTUDIO_LAN_IP is required in .env or as an environment variable." >&2
+    exit 1
+  fi
+
+  case "$macstudio_lan_ip" in
+    *[!A-Za-z0-9_.-]*)
+      echo "ERROR: MACSTUDIO_LAN_IP contains unsupported characters: $macstudio_lan_ip" >&2
+      exit 1
+      ;;
+  esac
+
+  upsert_env MACSTUDIO_LAN_IP "$macstudio_lan_ip"
+  upsert_env DEFAULT_UPSTREAM "${DEFAULT_UPSTREAM:-http://$macstudio_lan_ip:11435}"
+  upsert_env DASHBOARD_UPSTREAM "${DASHBOARD_UPSTREAM:-http://$macstudio_lan_ip:3000}"
+  upsert_env AI_UPSTREAM "${AI_UPSTREAM:-http://$macstudio_lan_ip:8771}"
+  upsert_env OLLAMA_UPSTREAM "${OLLAMA_UPSTREAM:-http://$macstudio_lan_ip:11435}"
+}
+
 deploy_nginx() {
   image="${1:-${NGINX_IMAGE:-}}"
   ensure_env
+  sync_macstudio_upstreams
 
   if [ -n "$image" ]; then
     upsert_env NGINX_IMAGE "$image"

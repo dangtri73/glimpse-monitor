@@ -19,6 +19,7 @@ class DomainGatewayManagerTests(unittest.TestCase):
         self.temp_dir = tempfile.TemporaryDirectory()
         self.config_path = Path(self.temp_dir.name) / "devices.json"
         os.environ["GLIMPSE_AGENT_CONFIG_PATH"] = str(self.config_path)
+        os.environ["MACSTUDIO_LAN_IP"] = "192.168.1.44"
         self.write_config(
             {
                 "gateway": {},
@@ -28,27 +29,27 @@ class DomainGatewayManagerTests(unittest.TestCase):
                 "domainGateway": {
                     "allowedPublicPorts": [80],
                     "allowedProtocols": ["http"],
-                    "allowedTargetHosts": ["192.168.1.3"],
+                    "allowedTargetHosts": ["${MACSTUDIO_LAN_IP}"],
                     "reservedHosts": ["glimpse-go.site"],
                     "targets": [
                         {
                             "id": "dashboard",
                             "name": "Dashboard",
                             "targetDeviceId": "mac-studio",
-                            "targetHost": "192.168.1.3",
+                            "targetHost": "${MACSTUDIO_LAN_IP}",
                             "targetPort": 3000,
                             "protocol": "http",
-                            "upstream": "http://192.168.1.3:3000",
+                            "upstream": "http://${MACSTUDIO_LAN_IP}:3000",
                             "enabled": True,
                         },
                         {
                             "id": "disabled",
                             "name": "Disabled",
                             "targetDeviceId": "mac-studio",
-                            "targetHost": "192.168.1.3",
+                            "targetHost": "${MACSTUDIO_LAN_IP}",
                             "targetPort": 3999,
                             "protocol": "http",
-                            "upstream": "http://192.168.1.3:3999",
+                            "upstream": "http://${MACSTUDIO_LAN_IP}:3999",
                             "enabled": False,
                         },
                         {
@@ -68,6 +69,7 @@ class DomainGatewayManagerTests(unittest.TestCase):
 
     def tearDown(self) -> None:
         os.environ.pop("GLIMPSE_AGENT_CONFIG_PATH", None)
+        os.environ.pop("MACSTUDIO_LAN_IP", None)
         self.temp_dir.cleanup()
 
     def write_config(self, config: dict) -> None:
@@ -95,8 +97,9 @@ class DomainGatewayManagerTests(unittest.TestCase):
         )
 
         self.assertTrue(result["ok"])
-        self.assertEqual("http://192.168.1.3:3000", result["mapping"]["upstream"])
-        self.assertEqual("192.168.1.3", result["mapping"]["targetHost"])
+        self.assertEqual("http://192.168.1.44:3000", result["mapping"]["upstream"])
+        self.assertEqual("192.168.1.44", result["mapping"]["targetHost"])
+        self.assertEqual("${MACSTUDIO_LAN_IP}", self.read_config()["domainGateway"]["targets"][0]["targetHost"])
 
     def test_create_draft_rejects_disabled_target(self) -> None:
         result = DomainGatewayManager().create_draft(

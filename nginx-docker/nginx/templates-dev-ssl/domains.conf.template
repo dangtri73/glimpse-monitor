@@ -48,4 +48,55 @@ server {
     }
 }
 
+server {
+    listen 80;
+    server_name ${DASHBOARD_DOMAIN};
+
+    client_max_body_size 25m;
+
+    location = /nginx-health {
+        access_log off;
+        return 200 "ok\n";
+    }
+
+    location / {
+        proxy_pass ${DASHBOARD_UPSTREAM};
+        include /etc/nginx/snippets/proxy-headers.conf;
+    }
+}
+
+server {
+    listen 80;
+    server_name ${AI_DOMAIN};
+
+    client_max_body_size 25m;
+
+    location = /nginx-health {
+        access_log off;
+        return 200 "ok\n";
+    }
+
+    location / {
+        proxy_pass ${AI_UPSTREAM};
+        include /etc/nginx/snippets/proxy-headers.conf;
+    }
+}
+
+server {
+    listen 80;
+    server_name ${OLLAMA_DOMAIN};
+
+    client_max_body_size 25m;
+
+    location = /nginx-health {
+        access_log off;
+        return 200 "ok\n";
+    }
+
+    location / {
+        proxy_pass ${OLLAMA_UPSTREAM};
+        include /etc/nginx/snippets/proxy-headers.conf;
+    }
+}
+
 include /etc/nginx/generated/*.conf;

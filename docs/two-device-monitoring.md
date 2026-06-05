@@ -149,7 +149,7 @@ Authorization: Bearer <agent-token>
   "name": "Mac Studio",
   "role": "compute",
   "hostname": "mac-studio.local",
-  "lanIp": "192.168.1.3",
+  "lanIp": "${MACSTUDIO_LAN_IP}",
   "agentVersion": "0.1.0",
   "observedAt": "2026-06-02T09:00:00Z"
 }

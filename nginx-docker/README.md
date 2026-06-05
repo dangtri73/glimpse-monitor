@@ -16,7 +16,7 @@ For GitHub Actions, use the monorepo workflows in `../.github/workflows/`.
 - `glimpse-go.site`
 - `www.glimpse-go.site`
 
-All base domains proxy to `DEFAULT_UPSTREAM`. Use the mixed template while only `dev.api.hftvn.com` has a certificate, then switch to full SSL mode after `glimpse-go.site` certificates exist. On the dev server, set the upstream to a service endpoint reachable from the gateway, usually a Mac Studio LAN address such as `http://192.168.1.3:<port>`.
+All base domains proxy to `DEFAULT_UPSTREAM`. Use the mixed template while only `dev.api.hftvn.com` has a certificate, then switch to full SSL mode after `glimpse-go.site` certificates exist. On the dev server, set `MACSTUDIO_LAN_IP` to the Mac Studio LAN address reachable from the gateway.
 
 The current dev-server runtime directory is:
 
@@ -157,16 +157,16 @@ The command arrays live in `agent/config/devices.json` under `domainGateway.ngin
 
 ## Configure The Upstream
 
-Edit `.env` on the dev server so `DEFAULT_UPSTREAM` points to the Mac Studio service you want the base domains to reach:
+Edit `.env` on the dev server so `MACSTUDIO_LAN_IP` points to the Mac Studio service host:
 
 ```env
-DEFAULT_UPSTREAM=http://192.168.1.3:11435
+MACSTUDIO_LAN_IP=<macstudio-lan-ip>
 ```
 
-After changing `.env`, recreate the container:
+After changing `.env`, run the runtime deploy script. It rewrites `DEFAULT_UPSTREAM`, `DASHBOARD_UPSTREAM`, `AI_UPSTREAM`, and `OLLAMA_UPSTREAM` from `MACSTUDIO_LAN_IP`.
 
 ```bash
-docker-compose up -d
+./deploy.sh deploy
 docker exec glimpse-nginx nginx -t
 ```
 

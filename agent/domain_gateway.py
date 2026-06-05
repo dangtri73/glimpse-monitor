@@ -9,7 +9,18 @@ from pathlib import Path
 from typing import Any
 from urllib.parse import urlsplit
 
-from agent_common import coerce_int, config_path, load_config, now_ms, run_command, run_text, save_config, slug, utc_now
+from agent_common import (
+    coerce_int,
+    config_path,
+    expand_config_env,
+    load_config,
+    now_ms,
+    run_command,
+    run_text,
+    save_config,
+    slug,
+    utc_now,
+)
 
 
 DEFAULT_NGINX_GENERATED_CONF_PATH = (
@@ -20,6 +31,10 @@ SAFE_UPSTREAM_HOST_RE = re.compile(r"^[A-Za-z0-9_.:-]+$")
 
 
 class DomainGatewayManager:
+    def _config_pair(self) -> tuple[dict[str, Any], dict[str, Any]]:
+        raw_config = load_config(expand_env=False)
+        return raw_config, expand_config_env(raw_config)
+
     def policy(self, config: dict[str, Any] | None = None) -> dict[str, Any]:
         payload = config or load_config()
         gateway_config = payload.get("domainGateway", {})
@@ -47,7 +62,7 @@ class DomainGatewayManager:
         }
 
     def create_draft(self, payload: dict[str, Any], actor: str | None = None) -> dict[str, Any]:
-        config = load_config()
+        raw_config, config = self._config_pair()
         gateway_config = config.get("domainGateway", {})
         targets = self._target_lookup(config)
         target_id = str(payload.get("targetId") or "").strip()
@@ -99,9 +114,9 @@ class DomainGatewayManager:
         if not validation["ok"]:
             return {"ok": False, "mapping": mapping, **validation}
 
-        config.setdefault("portMappings", []).append(mapping)
-        self._append_audit(config, actor, "port_mapping.draft_created", "port_mapping", mapping["id"], mapping)
-        save_config(config)
+        raw_config.setdefault("portMappings", []).append(mapping)
+        self._append_audit(raw_config, actor, "port_mapping.draft_created", "port_mapping", mapping["id"], mapping)
+        save_config(raw_config)
         return {"ok": True, "mapping": mapping, **validation}
 
     def validate(self, mapping_id: str) -> dict[str, Any]:
@@ -113,12 +128,14 @@ class DomainGatewayManager:
         return {"mapping": mapping, **self.validate_mapping(config, mapping)}
 
     def verify(self, mapping_id: str, actor: str | None = None) -> dict[str, Any]:
-        config = load_config()
+        raw_config, config = self._config_pair()
         mapping = self._find_mapping(config, mapping_id)
+        raw_mapping = self._find_mapping(raw_config, mapping_id)
         if not mapping:
             return {"ok": False, "error": f"Unknown port mapping: {mapping_id}"}
+        assert raw_mapping is not None
 
-        verification = mapping.get("verification") or {}
+        verification = raw_mapping.get("verification") or {}
         name = verification.get("name")
         expected = verification.get("value")
         if not name or not expected:
@@ -136,13 +153,14 @@ class DomainGatewayManager:
         verified = str(expected) in flattened
         verification["checkedAt"] = utc_now()
         verification["status"] = "verified" if verified else "pending"
-        mapping["verification"] = verification
-        mapping["updatedAt"] = utc_now()
+        raw_mapping["verification"] = verification
+        raw_mapping["updatedAt"] = utc_now()
+        mapping = expand_config_env(raw_mapping)
 
         if verified:
-            self._append_audit(config, actor, "port_mapping.domain_verified", "port_mapping", mapping_id, verification)
+            self._append_audit(raw_config, actor, "port_mapping.domain_verified", "port_mapping", mapping_id, verification)
 
-        save_config(config)
+        save_config(raw_config)
         return {
             "ok": verified,
             "mapping": mapping,
@@ -152,7 +170,7 @@ class DomainGatewayManager:
         }
 
     def apply(self, mapping_id: str, actor: str | None = None) -> dict[str, Any]:
-        config = load_config()
+        raw_config, config = self._config_pair()
         mapping = self._find_mapping(config, mapping_id)
         if not mapping:
             return {"ok": False, "error": f"Unknown port mapping: {mapping_id}"}
@@ -161,13 +179,16 @@ class DomainGatewayManager:
         if not validation["ok"]:
             return {"ok": False, "mapping": mapping, **validation}
 
-        next_config = deepcopy(config)
+        next_raw_config = deepcopy(raw_config)
+        next_raw_mapping = self._find_mapping(next_raw_config, mapping_id)
+        assert next_raw_mapping is not None
+        next_raw_mapping["status"] = "active"
+        next_raw_mapping["updatedAt"] = utc_now()
+        self._append_audit(next_raw_config, actor, "port_mapping.applied", "port_mapping", mapping_id, next_raw_mapping)
+
+        next_config = expand_config_env(next_raw_config)
         next_mapping = self._find_mapping(next_config, mapping_id)
         assert next_mapping is not None
-        next_mapping["status"] = "active"
-        next_mapping["updatedAt"] = utc_now()
-        self._append_audit(next_config, actor, "port_mapping.applied", "port_mapping", mapping_id, next_mapping)
-
         rendered_config = self.render_nginx_config(next_config)
         if os.getenv("GLIMPSE_AGENT_ENABLE_NGINX_APPLY") != "true":
             return {
@@ -193,21 +214,25 @@ class DomainGatewayManager:
         if not write_result["ok"]:
             return {"ok": False, "mapping": mapping, **write_result}
 
-        save_config(next_config)
+        save_config(next_raw_config)
         return {"ok": True, "dryRun": False, "mapping": next_mapping, **write_result}
 
     def rollback(self, mapping_id: str, actor: str | None = None) -> dict[str, Any]:
-        config = load_config()
+        raw_config, config = self._config_pair()
         mapping = self._find_mapping(config, mapping_id)
         if not mapping:
             return {"ok": False, "error": f"Unknown port mapping: {mapping_id}"}
 
-        next_config = deepcopy(config)
+        next_raw_config = deepcopy(raw_config)
+        next_raw_mapping = self._find_mapping(next_raw_config, mapping_id)
+        assert next_raw_mapping is not None
+        next_raw_mapping["status"] = "disabled"
+        next_raw_mapping["updatedAt"] = utc_now()
+        self._append_audit(next_raw_config, actor, "port_mapping.rolled_back", "port_mapping", mapping_id, next_raw_mapping)
+
+        next_config = expand_config_env(next_raw_config)
         next_mapping = self._find_mapping(next_config, mapping_id)
         assert next_mapping is not None
-        next_mapping["status"] = "disabled"
-        next_mapping["updatedAt"] = utc_now()
-        self._append_audit(next_config, actor, "port_mapping.rolled_back", "port_mapping", mapping_id, next_mapping)
         rendered_config = self.render_nginx_config(next_config)
 
         if os.getenv("GLIMPSE_AGENT_ENABLE_NGINX_APPLY") != "true":
@@ -223,7 +248,7 @@ class DomainGatewayManager:
         if not write_result["ok"]:
             return {"ok": False, "mapping": mapping, **write_result}
 
-        save_config(next_config)
+        save_config(next_raw_config)
         return {"ok": True, "dryRun": False, "mapping": next_mapping, **write_result}
 
     def validate_mapping(self, config: dict[str, Any], mapping: dict[str, Any]) -> dict[str, Any]:

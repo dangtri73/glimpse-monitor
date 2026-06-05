@@ -47,12 +47,12 @@ GLIMPSE_AGENT_ENABLE_NGINX_APPLY=true
 Domain gateway targets are explicit allowlist entries in `config/devices.json`. For the current two-machine setup, member domains should route to Mac Studio LAN services, for example:
 
 ```txt
-dev server Nginx -> 192.168.1.3:3000
-dev server Nginx -> 192.168.1.3:8771
-dev server Nginx -> 192.168.1.3:11435
+dev server Nginx -> ${MACSTUDIO_LAN_IP}:3000
+dev server Nginx -> ${MACSTUDIO_LAN_IP}:8771
+dev server Nginx -> ${MACSTUDIO_LAN_IP}:11435
 ```
 
-Keep `domainGateway.allowedTargetHosts` restricted to the Mac Studio LAN IP. If a target should be available only to specific member teams later, add `allowedTeamIds` to that target and send `teamId`/`ownerTeamId` when creating the draft.
+Set `MACSTUDIO_LAN_IP` in the agent process environment. Keep `domainGateway.allowedTargetHosts` restricted to that Mac Studio LAN IP. If a target should be available only to specific member teams later, add `allowedTeamIds` to that target and send `teamId`/`ownerTeamId` when creating the draft.
 
 Current authentication is still the shared agent admin token below. Real admin/member-team permission checks need the dashboard auth layer to provide trusted user and team identity before exposing this publicly.
 

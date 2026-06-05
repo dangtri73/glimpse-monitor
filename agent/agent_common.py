@@ -15,6 +15,16 @@ DEFAULT_CONFIG = {"gateway": {}, "devices": [], "services": [], "portMappings": 
 DEFAULT_CONFIG_PATH = Path(__file__).parent / "config" / "devices.json"
 
 
+def expand_config_env(value: Any) -> Any:
+    if isinstance(value, str):
+        return os.path.expandvars(value)
+    if isinstance(value, list):
+        return [expand_config_env(item) for item in value]
+    if isinstance(value, dict):
+        return {key: expand_config_env(item) for key, item in value.items()}
+    return value
+
+
 def config_path() -> Path:
     raw_path = os.getenv("GLIMPSE_AGENT_CONFIG_PATH")
     if not raw_path:
@@ -24,15 +34,16 @@ def config_path() -> Path:
     return path if path.is_absolute() else (Path.cwd() / path).resolve()
 
 
-def load_config() -> dict[str, Any]:
+def load_config(*, expand_env: bool = True) -> dict[str, Any]:
     path = config_path()
     if not path.exists():
         return deepcopy(DEFAULT_CONFIG)
 
     try:
-        return json.loads(path.read_text(encoding="utf-8"))
+        config = json.loads(path.read_text(encoding="utf-8"))
     except json.JSONDecodeError:
         return deepcopy(DEFAULT_CONFIG)
+    return expand_config_env(config) if expand_env else config
 
 
 def save_config(config: dict[str, Any]) -> None:

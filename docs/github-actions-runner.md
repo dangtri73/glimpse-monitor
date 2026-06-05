@@ -179,6 +179,7 @@ Mac Studio does not need a manually maintained `glimpse-monitor` repo checkout f
 Recommended GitHub Actions repository variables for Mac Studio app services:
 
 ```txt
+MACSTUDIO_LAN_IP=<macstudio-lan-ip>
 MACSTUDIO_RUNTIME_DIR=/Users/admin/glimpse-monitor-runtime
 MACSTUDIO_ENV_FILE=/Users/admin/glimpse-monitor-runtime/.env
 ```
@@ -206,6 +207,7 @@ This path should match the GitHub Actions variable:
 
 ```txt
 DEV_NGINX_DOCKER_DIR=/Users/tri/nginx-docker
+MACSTUDIO_LAN_IP=<macstudio-lan-ip>
 ```
 
 If deploy fails with a permission error such as:

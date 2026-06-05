@@ -418,7 +418,7 @@ The infra ports bind to `127.0.0.1`, so they are private to the Mac Studio host.
 From a local machine, use SSH tunnels through the dev gateway. Example for Postgres:
 
 ```bash
-ssh -J tri@dev.hftvn.com -L 5433:192.168.1.3:5433 admin@192.168.1.3
+ssh -J tri@dev.hftvn.com -L 5433:127.0.0.1:5433 admin@<macstudio-lan-ip>
 ```
 
 Then connect locally to:

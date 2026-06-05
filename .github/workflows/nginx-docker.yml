@@ -17,6 +17,7 @@ env:
   DOCKERHUB_NAMESPACE: ${{ vars.DOCKERHUB_NAMESPACE || 'dangtri73' }}
   NGINX_DOCKERHUB_REPO: ${{ vars.NGINX_DOCKERHUB_REPO || 'glimpse-nginx' }}
   MACSTUDIO_DOCKER_SOCKET: ${{ vars.MACSTUDIO_DOCKER_SOCKET || '' }}
+  MACSTUDIO_LAN_IP: ${{ vars.MACSTUDIO_LAN_IP }}
 
 jobs:
   build-and-deploy:
@@ -105,7 +106,17 @@ jobs:
           docker build --pull --platform "$DOCKER_PLATFORM" -t "$IMAGE:$SHORT_SHA" .
           docker run --rm \
             -e NGINX_TEMPLATE_MODE=http \
+            -e DEV_DOMAIN=dev.api.hftvn.com \
+            -e GLIMPSE_DOMAIN=glimpse-go.site \
+            -e GLIMPSE_WWW_DOMAIN=www.glimpse-go.site \
+            -e DASHBOARD_DOMAIN=dashboard.glimpse-go.site \
+            -e AI_DOMAIN=ai.glimpse-go.site \
+            -e OLLAMA_DOMAIN=ollama.glimpse-go.site \
+            -e MACSTUDIO_LAN_IP=127.0.0.1 \
             -e DEFAULT_UPSTREAM=http://127.0.0.1:11435 \
+            -e DASHBOARD_UPSTREAM=http://127.0.0.1:3000 \
+            -e AI_UPSTREAM=http://127.0.0.1:8771 \
+            -e OLLAMA_UPSTREAM=http://127.0.0.1:11435 \
             "$IMAGE:$SHORT_SHA" nginx -t
 
       - name: Push Docker Hub image
@@ -137,6 +148,17 @@ jobs:
           test -n "$DEV_SSH_HOST"
           test -n "$DEV_SSH_USER"
           test -n "$DEV_SSH_PRIVATE_KEY"
+          if [ -z "$MACSTUDIO_LAN_IP" ]; then
+            echo "ERROR: Set GitHub repository variable MACSTUDIO_LAN_IP to the Mac Studio LAN IP." >&2
+            exit 1
+          fi
+
+          case "$MACSTUDIO_LAN_IP" in
+            *[!A-Za-z0-9_.-]*)
+              echo "ERROR: MACSTUDIO_LAN_IP contains unsupported characters: $MACSTUDIO_LAN_IP" >&2
+              exit 1
+              ;;
+          esac
 
           mkdir -p ~/.ssh
           chmod 700 ~/.ssh
@@ -178,7 +200,7 @@ jobs:
             "$DEV_SSH_USER@$DEV_SSH_HOST:$DEV_NGINX_DOCKER_DIR/scripts/certs.sh"
 
           ssh -i ~/.ssh/id_ed25519 -p "$DEV_SSH_PORT" "$DEV_SSH_USER@$DEV_SSH_HOST" \
-            "DEPLOY_IMAGE='$deploy_image' REMOTE_DIR='$DEV_NGINX_DOCKER_DIR' sh -s" <<'REMOTE'
+            "DEPLOY_IMAGE='$deploy_image' REMOTE_DIR='$DEV_NGINX_DOCKER_DIR' MACSTUDIO_LAN_IP='$MACSTUDIO_LAN_IP' sh -s" <<'REMOTE'
           set -eu
           cd "$REMOTE_DIR"
           chmod +x deploy.sh

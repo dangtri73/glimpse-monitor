@@ -212,22 +212,26 @@ ENV_FILE=/Users/admin/glimpse-monitor-runtime/.env \
 
 ## Public Gateway Routing
 
-Keep Docker ports bound to `127.0.0.1` and let Nginx expose only the routes you need.
+Keep database and broker ports bound to `127.0.0.1`. Application HTTP services that the dev gateway must reach should bind on Mac Studio with `0.0.0.0`, then the dev gateway points to `MACSTUDIO_LAN_IP`.
 
-When the Nginx gateway runs on the separate dev server and proxies to Mac Studio over LAN, the target service must listen on the Mac Studio LAN interface. For example:
+Mac Studio runtime `.env`:
 
 ```env
-DASHBOARD_BIND_HOST=192.168.1.3
-AI_SERVICE_BIND_HOST=192.168.1.3
+DASHBOARD_BIND_HOST=0.0.0.0
+AI_SERVICE_BIND_HOST=0.0.0.0
 ```
 
-Leave other infrastructure ports on `127.0.0.1`.
+Dev server Nginx runtime `.env`:
+
+```env
+MACSTUDIO_LAN_IP=<macstudio-lan-ip>
+```
 
 Example public routes:
 
 ```txt
-https://dev.api.hftvn.com/monitor -> http://127.0.0.1:3000
-https://dev.api.hftvn.com/ai      -> http://127.0.0.1:8771
+https://dashboard.glimpse-go.site -> http://${MACSTUDIO_LAN_IP}:3000
+https://ai.glimpse-go.site        -> http://${MACSTUDIO_LAN_IP}:8771
 ```
 
 If `OLLAMA_BASE_URL=https://dev.api.hftvn.com/ai`, the AI service calls:

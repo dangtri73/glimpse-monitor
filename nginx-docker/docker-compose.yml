@@ -20,11 +20,18 @@ services:
       DEV_DOMAIN: ${DEV_DOMAIN:-dev.api.hftvn.com}
       GLIMPSE_DOMAIN: ${GLIMPSE_DOMAIN:-glimpse-go.site}
       GLIMPSE_WWW_DOMAIN: ${GLIMPSE_WWW_DOMAIN:-www.glimpse-go.site}
+      DASHBOARD_DOMAIN: ${DASHBOARD_DOMAIN:-dashboard.glimpse-go.site}
+      AI_DOMAIN: ${AI_DOMAIN:-ai.glimpse-go.site}
+      OLLAMA_DOMAIN: ${OLLAMA_DOMAIN:-ollama.glimpse-go.site}
+      MACSTUDIO_LAN_IP: "${MACSTUDIO_LAN_IP:?Set MACSTUDIO_LAN_IP in .env}"
       DEV_SSL_CERTIFICATE: ${DEV_SSL_CERTIFICATE:-/etc/letsencrypt/live/dev.api.hftvn.com/fullchain.pem}
       DEV_SSL_CERTIFICATE_KEY: ${DEV_SSL_CERTIFICATE_KEY:-/etc/letsencrypt/live/dev.api.hftvn.com/privkey.pem}
       GLIMPSE_SSL_CERTIFICATE: ${GLIMPSE_SSL_CERTIFICATE:-/etc/ssl/cloudflare/glimpse-go.site/fullchain.pem}
       GLIMPSE_SSL_CERTIFICATE_KEY: ${GLIMPSE_SSL_CERTIFICATE_KEY:-/etc/ssl/cloudflare/glimpse-go.site/privkey.pem}
-      DEFAULT_UPSTREAM: ${DEFAULT_UPSTREAM:-http://192.168.1.3:11435}
+      DEFAULT_UPSTREAM: "${DEFAULT_UPSTREAM:?Set DEFAULT_UPSTREAM in .env}"
+      DASHBOARD_UPSTREAM: "${DASHBOARD_UPSTREAM:?Set DASHBOARD_UPSTREAM in .env}"
+      AI_UPSTREAM: "${AI_UPSTREAM:?Set AI_UPSTREAM in .env}"
+      OLLAMA_UPSTREAM: "${OLLAMA_UPSTREAM:?Set OLLAMA_UPSTREAM in .env}"
       NGINX_TEMPLATE_MODE: ${NGINX_TEMPLATE_MODE:-dev-ssl}
     extra_hosts:
       - "host.docker.internal:host-gateway"
