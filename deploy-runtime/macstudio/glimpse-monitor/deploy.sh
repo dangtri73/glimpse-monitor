@@ -54,9 +54,9 @@ load_env() {
 compose() {
   load_env
   if docker compose version >/dev/null 2>&1; then
-    docker compose -f docker-compose.yml "$@"
+    docker compose --env-file .env -f docker-compose.yml "$@"
   elif command -v docker-compose >/dev/null 2>&1; then
-    docker-compose -f docker-compose.yml "$@"
+    docker-compose --env-file .env -f docker-compose.yml "$@"
   else
     echo "ERROR: docker compose or docker-compose is required." >&2
     echo "PATH: $PATH" >&2

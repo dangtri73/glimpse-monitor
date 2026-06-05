@@ -60,6 +60,21 @@ env_value() {
   sed -n "s/^$key=//p" "$file" | tail -n 1
 }
 
+upsert_env_file() {
+  key="$1"
+  value="$2"
+  file="$(resolve_path "$ENV_FILE")"
+
+  [ -f "$file" ] || return 0
+
+  if grep -q "^$key=" "$file"; then
+    sed -i.bak "s|^$key=.*|$key=$value|" "$file"
+    rm -f "$file.bak"
+  else
+    printf '\n%s=%s\n' "$key" "$value" >> "$file"
+  fi
+}
+
 prepare_runtime_dir() {
   [ -n "$RUNTIME_DIR" ] || return 0
 
@@ -183,6 +198,31 @@ export_target_images() {
   esac
 }
 
+sync_target_env_file() {
+  target_needs_images "$TARGET" || return 0
+
+  upsert_env_file DOCKERHUB_NAMESPACE "$NAMESPACE"
+  upsert_env_file IMAGE_PREFIX "$IMAGE_PREFIX"
+  upsert_env_file IMAGE_TAG "$IMAGE_TAG"
+
+  case "$TARGET" in
+    dashboard)
+      upsert_env_file DASHBOARD_IMAGE "$NAMESPACE/$IMAGE_PREFIX-dashboard:$IMAGE_TAG"
+      ;;
+    ai-service)
+      upsert_env_file AI_SERVICE_IMAGE "$NAMESPACE/$IMAGE_PREFIX-ai-service:$IMAGE_TAG"
+      ;;
+    workers)
+      upsert_env_file WORKERS_IMAGE "$NAMESPACE/$IMAGE_PREFIX-workers:$IMAGE_TAG"
+      ;;
+    all|stack)
+      upsert_env_file DASHBOARD_IMAGE "$NAMESPACE/$IMAGE_PREFIX-dashboard:$IMAGE_TAG"
+      upsert_env_file AI_SERVICE_IMAGE "$NAMESPACE/$IMAGE_PREFIX-ai-service:$IMAGE_TAG"
+      upsert_env_file WORKERS_IMAGE "$NAMESPACE/$IMAGE_PREFIX-workers:$IMAGE_TAG"
+      ;;
+  esac
+}
+
 compose() {
   env_file="$(resolve_path "$ENV_FILE")"
   compose_file="$(resolve_path "$COMPOSE_FILE")"
@@ -194,9 +234,9 @@ compose() {
   fi
   export_target_images
   if docker compose version >/dev/null 2>&1; then
-    docker compose -f "$compose_file" "$@"
+    docker compose --env-file "$env_file" -f "$compose_file" "$@"
   elif command -v docker-compose >/dev/null 2>&1; then
-    docker-compose -f "$compose_file" "$@"
+    docker-compose --env-file "$env_file" -f "$compose_file" "$@"
   else
     echo "ERROR: docker compose or docker-compose is required." >&2
     echo "PATH: $PATH" >&2
@@ -241,12 +281,14 @@ if [ "$TARGET" = "agent" ]; then
   [ -n "$RUNTIME_DIR" ] || { echo "ERROR: RUNTIME_DIR is required for agent deploy." >&2; exit 1; }
   "$RUNTIME_DIR/deploy.sh" agent
 elif [ "$TARGET" = "stack" ]; then
+  sync_target_env_file
   compose pull
   compose up -d --no-build
   if [ -n "$RUNTIME_DIR" ]; then
     "$RUNTIME_DIR/deploy.sh" agent
   fi
 else
+  sync_target_env_file
   # shellcheck disable=SC2086
   compose pull $SERVICES
   if [ "$TARGET" = "dashboard" ]; then
