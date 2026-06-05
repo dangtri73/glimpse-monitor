@@ -134,7 +134,7 @@ jobs:
           echo "DOCKER_CONFIG=$docker_config" >> "$GITHUB_ENV"
 
       - name: Configure Docker daemon
-        if: env.BUILD_TARGETS != 'none'
+        if: env.TARGETS != 'none'
         run: |
           set -eu
 

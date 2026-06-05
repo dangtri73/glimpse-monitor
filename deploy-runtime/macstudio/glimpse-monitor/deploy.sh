@@ -127,6 +127,16 @@ agent_port() {
   echo "${GLIMPSE_AGENT_PORT:-8765}"
 }
 
+agent_bind_host() {
+  load_env
+  host="${GLIMPSE_AGENT_HOST:-127.0.0.1}"
+  if [ "$host" = "::" ]; then
+    echo "127.0.0.1"
+  else
+    echo "$host"
+  fi
+}
+
 agent_launch_domains() {
   load_env
   uid="$(id -u)"
@@ -276,6 +286,86 @@ require_agent_port_available() {
   fi
 }
 
+agent_port_bindable() {
+  host="$(agent_bind_host)"
+  port="$(agent_port)"
+  "$AGENT_PYTHON" - "$host" "$port" <<'PY' >/dev/null 2>&1
+import socket
+import sys
+
+host = sys.argv[1]
+port = int(sys.argv[2])
+with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as sock:
+    sock.bind((host, port))
+PY
+}
+
+find_free_agent_port() {
+  host="$(agent_bind_host)"
+  start="$(agent_port)"
+  "$AGENT_PYTHON" - "$host" "$start" <<'PY'
+import socket
+import sys
+
+host = sys.argv[1]
+start = int(sys.argv[2])
+for port in range(start + 1, start + 101):
+    try:
+        with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as sock:
+            sock.bind((host, port))
+    except OSError:
+        continue
+    print(port)
+    raise SystemExit(0)
+raise SystemExit(1)
+PY
+}
+
+prepare_agent_port() {
+  load_env
+  AGENT_PYTHON="${AGENT_PYTHON:-/usr/bin/python3}"
+  export AGENT_PYTHON
+
+  stop_agent_launchd_jobs
+  stop_replaceable_agent_port_owner || true
+
+  if agent_port_bindable; then
+    return 0
+  fi
+
+  port="$(agent_port)"
+  echo "Agent port $port is not bindable after stopping known Glimpse jobs." >&2
+  echo "--- port owners ---" >&2
+  agent_port_owners >&2
+
+  if [ "${GLIMPSE_AGENT_AUTO_PORT_FALLBACK:-true}" != "true" ]; then
+    echo "ERROR: set GLIMPSE_AGENT_AUTO_PORT_FALLBACK=true or free port $port." >&2
+    return 1
+  fi
+
+  new_port="$(find_free_agent_port)" || {
+    echo "ERROR: no free agent port found near $port." >&2
+    return 1
+  }
+
+  echo "Using fallback agent port: $new_port"
+  upsert_env GLIMPSE_AGENT_PORT "$new_port"
+  upsert_env MONITOR_AGENT_URL "http://host.docker.internal:$new_port"
+  AGENT_PORT_CHANGED=true
+}
+
+restart_dashboard_for_agent_url() {
+  echo "Restarting dashboard so it uses updated MONITOR_AGENT_URL..."
+
+  container_id="$(compose ps -q dashboard 2>/dev/null || true)"
+  if [ -z "$container_id" ]; then
+    echo "Dashboard container is not present; skipping dashboard restart."
+    return 0
+  fi
+
+  compose up -d --no-build dashboard
+}
+
 wait_for_agent_health() {
   url="$(agent_health_url)"
   attempts="${1:-30}"
@@ -303,6 +393,9 @@ wait_for_agent_health() {
 }
 
 deploy_agent() {
+  AGENT_PORT_CHANGED=false
+  prepare_agent_port
+
   plist="$(generate_agent_plist)"
   label="$(agent_label)"
   target="$(agent_launch_target)"
@@ -313,14 +406,14 @@ deploy_agent() {
   echo "Agent log dir:        $(agent_log_dir)"
   echo "Agent plist:          $plist"
 
-  stop_agent_launchd_jobs
-  stop_replaceable_agent_port_owner
-  require_agent_port_available
-
   launchctl bootstrap "$target" "$plist"
   launchctl kickstart -k "$target/$label"
 
   wait_for_agent_health 30
+
+  if [ "$AGENT_PORT_CHANGED" = "true" ]; then
+    restart_dashboard_for_agent_url
+  fi
 }
 
 deploy_agent_if_present() {
