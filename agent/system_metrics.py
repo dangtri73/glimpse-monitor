@@ -6,6 +6,7 @@ import re
 import shutil
 import socket
 import subprocess
+import threading
 import time
 from pathlib import Path
 from typing import Any
@@ -18,6 +19,8 @@ class SystemMetricsCollector:
         self._previous_network: dict[str, Any] | None = None
         self._user_disk_cache: dict[str, Any] | None = None
         self._user_disk_cache_at = 0.0
+        self._user_disk_lock = threading.Lock()
+        self._user_disk_scan_in_progress = False
 
     def host(self) -> dict[str, Any]:
         hostname = socket.gethostname()
@@ -231,16 +234,53 @@ class SystemMetricsCollector:
         ttl_seconds = _env_int("GLIMPSE_AGENT_USER_DISK_CACHE_SECONDS", 300, minimum=30)
         current_time = time.time()
 
-        if self._user_disk_cache and current_time - self._user_disk_cache_at < ttl_seconds:
+        with self._user_disk_lock:
+            cached_payload = self._user_disk_cache
+            cached_at = self._user_disk_cache_at
+            scan_in_progress = self._user_disk_scan_in_progress
+
+        if cached_payload and current_time - cached_at < ttl_seconds:
             return {
-                **self._user_disk_cache,
-                "userUsageScanAgeSeconds": int(current_time - self._user_disk_cache_at),
+                **cached_payload,
+                "userUsageScanAgeSeconds": int(current_time - cached_at),
+                "userUsageScanInProgress": scan_in_progress,
             }
 
-        payload = self._user_disk_usage(disk_total)
-        self._user_disk_cache = payload
-        self._user_disk_cache_at = current_time
-        return {**payload, "userUsageScanAgeSeconds": 0}
+        if not scan_in_progress:
+            self._start_user_disk_scan(disk_total)
+
+        if cached_payload:
+            return {
+                **cached_payload,
+                "userUsageScanAgeSeconds": int(current_time - cached_at),
+                "userUsageScanInProgress": True,
+            }
+
+        return {
+            **_user_disk_payload(root=_user_disk_root(), error="user disk usage scan in progress"),
+            "userUsageScanAgeSeconds": 0,
+            "userUsageScanInProgress": True,
+        }
+
+    def _start_user_disk_scan(self, disk_total: int) -> None:
+        with self._user_disk_lock:
+            if self._user_disk_scan_in_progress:
+                return
+            self._user_disk_scan_in_progress = True
+
+        thread = threading.Thread(target=self._refresh_user_disk_cache, args=(disk_total,), daemon=True)
+        thread.start()
+
+    def _refresh_user_disk_cache(self, disk_total: int) -> None:
+        try:
+            payload = self._user_disk_usage(disk_total)
+        except Exception as exc:  # Defensive: disk usage must not break live resource snapshots.
+            payload = _user_disk_payload(root=_user_disk_root(), error=str(exc))
+
+        with self._user_disk_lock:
+            self._user_disk_cache = payload
+            self._user_disk_cache_at = time.time()
+            self._user_disk_scan_in_progress = False
 
     def _user_disk_usage(self, disk_total: int) -> dict[str, Any]:
         if os.getenv("GLIMPSE_AGENT_ENABLE_USER_DISK_USAGE", "true").lower() not in {"1", "true", "yes", "on"}:
@@ -263,8 +303,9 @@ class SystemMetricsCollector:
         timeout_seconds = _env_int("GLIMPSE_AGENT_USER_DISK_TIMEOUT_SECONDS", 30, minimum=5, maximum=300)
         try:
             result = subprocess.run(
-                ["du", "-sk", *[str(path) for path in paths]],
-                capture_output=True,
+                ["du", "-skx", *[str(path) for path in paths]],
+                stdout=subprocess.PIPE,
+                stderr=subprocess.DEVNULL,
                 check=False,
                 shell=False,
                 text=True,
@@ -300,7 +341,7 @@ class SystemMetricsCollector:
         result_limit = _env_int("GLIMPSE_AGENT_USER_DISK_RESULT_LIMIT", 12, minimum=1, maximum=100)
         error = None
         if result.returncode != 0 and not rows:
-            error = (result.stderr or "user disk usage scan failed").strip().splitlines()[-1][:240]
+            error = "user disk usage scan failed"
 
         return _user_disk_payload(root=root, rows=rows[:result_limit], total_bytes=total_user_bytes, error=error)
 

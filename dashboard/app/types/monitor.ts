@@ -33,6 +33,7 @@ export type ResourceSnapshot = {
       userUsageTotalBytes?: number;
       userUsageScannedAtMs?: number;
       userUsageScanAgeSeconds?: number;
+      userUsageScanInProgress?: boolean;
       userUsageError?: string;
       userUsage?: Array<{
         name: string;

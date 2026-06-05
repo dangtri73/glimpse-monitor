@@ -331,6 +331,7 @@ export function DashboardShell() {
 function UserDiskUsagePanel({ snapshot }: { snapshot: ResourceSnapshot | null }) {
   const disk = snapshot?.resources.disk;
   const users = disk?.userUsage ?? [];
+  const scanInProgress = disk?.userUsageScanInProgress ?? false;
   const maxUserBytes = Math.max(...users.map((user) => user.usedBytes), 1);
   const scannedAt = disk?.userUsageScannedAtMs
     ? new Date(disk.userUsageScannedAtMs).toLocaleTimeString()
@@ -390,8 +391,12 @@ function UserDiskUsagePanel({ snapshot }: { snapshot: ResourceSnapshot | null })
         })}
       </div>
 
-      {disk?.userUsageError && <p className="panel-note">{disk.userUsageError}</p>}
-      {!users.length && <p className="empty-state">Waiting for user disk usage scan.</p>}
+      {disk?.userUsageError && !scanInProgress && <p className="panel-note">{disk.userUsageError}</p>}
+      {!users.length && (
+        <p className="empty-state">
+          {scanInProgress ? "Scanning user disk usage in the background." : "Waiting for user disk usage scan."}
+        </p>
+      )}
     </section>
   );
 }

@@ -17,6 +17,11 @@ latest_snapshot: dict[str, Any] | None = None
 MAX_REQUEST_BYTES = 64 * 1024
 
 
+class AgentHTTPServer(ThreadingHTTPServer):
+    allow_reuse_address = True
+    daemon_threads = True
+
+
 def _json(data: Any, status: int = 200) -> tuple[int, bytes]:
     return status, json.dumps(data, ensure_ascii=False).encode("utf-8")
 
@@ -165,7 +170,7 @@ def main() -> None:
     thread = threading.Thread(target=_poll_loop, args=(interval,), daemon=True)
     thread.start()
 
-    server = ThreadingHTTPServer((host, port), Handler)
+    server = AgentHTTPServer((host, port), Handler)
     print(f"glimpse monitor agent listening on http://{host}:{port}")
     server.serve_forever()
 
