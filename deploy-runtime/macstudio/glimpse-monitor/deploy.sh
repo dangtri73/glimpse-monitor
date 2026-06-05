@@ -355,7 +355,7 @@ prepare_agent_port() {
 }
 
 restart_dashboard_for_agent_url() {
-  echo "Restarting dashboard so it uses updated MONITOR_AGENT_URL..."
+  echo "Recreating dashboard so it uses current MONITOR_AGENT_URL..."
 
   container_id="$(compose ps -q dashboard 2>/dev/null || true)"
   if [ -z "$container_id" ]; then
@@ -363,7 +363,7 @@ restart_dashboard_for_agent_url() {
     return 0
   fi
 
-  compose up -d --no-build dashboard
+  compose up -d --no-build --force-recreate dashboard
 }
 
 wait_for_agent_health() {
@@ -411,9 +411,7 @@ deploy_agent() {
 
   wait_for_agent_health 30
 
-  if [ "$AGENT_PORT_CHANGED" = "true" ]; then
-    restart_dashboard_for_agent_url
-  fi
+  restart_dashboard_for_agent_url
 }
 
 deploy_agent_if_present() {

@@ -77,7 +77,9 @@ GLIMPSE_AGENT_REPLACE_PORT_OWNER=true
 
 If another unknown process owns `GLIMPSE_AGENT_PORT`, deploy fails and prints `lsof` output instead of stopping it.
 
-When `GLIMPSE_AGENT_AUTO_PORT_FALLBACK=true`, deploy can instead pick a nearby free port, update both `GLIMPSE_AGENT_PORT` and `MONITOR_AGENT_URL` in `.env`, then restart the dashboard container so it reads the new agent URL.
+When `GLIMPSE_AGENT_AUTO_PORT_FALLBACK=true`, deploy can instead pick a nearby free port and update both `GLIMPSE_AGENT_PORT` and `MONITOR_AGENT_URL` in `.env`.
+
+Every successful agent deploy force-recreates the dashboard container so the server-side Next.js API routes read the current `MONITOR_AGENT_URL`.
 
 Restart or stop:
 
