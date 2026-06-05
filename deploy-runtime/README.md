@@ -61,10 +61,13 @@ Run on Mac Studio:
 cd /Users/admin/glimpse-monitor-runtime
 cp -n .env.example .env
 ./deploy.sh stack
+./deploy.sh agent
 ./deploy.sh dashboard
 ./deploy.sh ai-service
 ./deploy.sh workers
 ```
+
+The Mac Studio monitor agent runs as a host `launchd` service, not as a Docker container. CI/CD copies `agent/` into `/Users/admin/glimpse-monitor-runtime/agent` before running `./deploy.sh agent`, so the dashboard container can reach it at `http://host.docker.internal:8765`.
 
 For Docker Desktop or Colima on Mac Studio, keep app service bind hosts open on the Mac host:
 

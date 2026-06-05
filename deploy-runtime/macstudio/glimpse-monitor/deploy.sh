@@ -3,20 +3,23 @@ set -eu
 
 usage() {
   cat <<'EOF'
-Deploy Glimpse Monitor app services from Docker Hub.
+Deploy Glimpse Monitor runtime services on Mac Studio.
 
 Usage:
-  ./deploy.sh <stack|all|dashboard|ai-service|workers>
+  ./deploy.sh <stack|all|dashboard|ai-service|workers|agent>
   ./deploy.sh status
-  ./deploy.sh logs [service]
-  ./deploy.sh restart <dashboard|ai-service|workers>
-  ./deploy.sh stop <dashboard|ai-service|workers|all|stack>
+  ./deploy.sh agent-status
+  ./deploy.sh logs [service|agent]
+  ./deploy.sh restart <dashboard|ai-service|workers|agent>
+  ./deploy.sh stop <dashboard|ai-service|workers|agent|all|stack>
 
 Examples:
   ./deploy.sh stack
   IMAGE_TAG=abc1234 ./deploy.sh dashboard
+  ./deploy.sh agent
   IMAGE_TAG=abc1234 ./deploy.sh all
   ./deploy.sh logs dashboard
+  ./deploy.sh logs agent
 EOF
 }
 
@@ -61,6 +64,159 @@ compose() {
   fi
 }
 
+agent_label() {
+  load_env
+  echo "${GLIMPSE_AGENT_LAUNCHD_LABEL:-site.glimpse.monitor.agent}"
+}
+
+agent_dir() {
+  load_env
+  case "${GLIMPSE_AGENT_DIR:-$SCRIPT_DIR/agent}" in
+    /*) echo "${GLIMPSE_AGENT_DIR:-$SCRIPT_DIR/agent}" ;;
+    *) echo "$SCRIPT_DIR/${GLIMPSE_AGENT_DIR:-agent}" ;;
+  esac
+}
+
+agent_log_dir() {
+  load_env
+  case "${GLIMPSE_AGENT_LOG_DIR:-$SCRIPT_DIR/logs/agent}" in
+    /*) echo "${GLIMPSE_AGENT_LOG_DIR:-$SCRIPT_DIR/logs/agent}" ;;
+    *) echo "$SCRIPT_DIR/${GLIMPSE_AGENT_LOG_DIR:-logs/agent}" ;;
+  esac
+}
+
+agent_launch_target() {
+  echo "gui/$(id -u)"
+}
+
+agent_source_exists() {
+  [ -f "$(agent_dir)/server.py" ]
+}
+
+require_agent_source() {
+  if ! agent_source_exists; then
+    echo "ERROR: agent source is missing: $(agent_dir)/server.py" >&2
+    echo "Deploy via scripts/deploy-macstudio.sh agent from a repo checkout so agent/ is copied into this runtime directory." >&2
+    exit 1
+  fi
+}
+
+agent_health_url() {
+  load_env
+  host="${GLIMPSE_AGENT_HOST:-127.0.0.1}"
+  port="${GLIMPSE_AGENT_PORT:-8765}"
+  if [ "$host" = "0.0.0.0" ] || [ "$host" = "::" ]; then
+    host="127.0.0.1"
+  fi
+  echo "http://$host:$port/health"
+}
+
+generate_agent_plist() {
+  load_env
+  require_agent_source
+
+  label="$(agent_label)"
+  dir="$(agent_dir)"
+  log_dir="$(agent_log_dir)"
+  plist="$HOME/Library/LaunchAgents/$label.plist"
+  python_bin="${AGENT_PYTHON:-/usr/bin/python3}"
+
+  mkdir -p "$HOME/Library/LaunchAgents" "$log_dir"
+
+  AGENT_LABEL="$label" \
+    AGENT_DIR="$dir" \
+    AGENT_LOG_DIR="$log_dir" \
+    AGENT_PYTHON="$python_bin" \
+    AGENT_PLIST="$plist" \
+    "$python_bin" - <<'PY'
+import os
+import plistlib
+
+label = os.environ["AGENT_LABEL"]
+agent_dir = os.environ["AGENT_DIR"]
+log_dir = os.environ["AGENT_LOG_DIR"]
+python_bin = os.environ["AGENT_PYTHON"]
+plist_path = os.environ["AGENT_PLIST"]
+
+env_keys = [
+    "PATH",
+    "MACSTUDIO_LAN_IP",
+    "GLIMPSE_AGENT_HOST",
+    "GLIMPSE_AGENT_PORT",
+    "GLIMPSE_AGENT_POLL_SECONDS",
+    "GLIMPSE_AGENT_CORS_ORIGIN",
+    "GLIMPSE_AGENT_LOG_REQUESTS",
+    "GLIMPSE_AGENT_ENABLE_SERVICE_ACTIONS",
+    "GLIMPSE_AGENT_ENABLE_NGINX_APPLY",
+    "GLIMPSE_AGENT_ALLOW_UNVERIFIED_DOMAINS",
+    "GLIMPSE_AGENT_ADMIN_TOKEN",
+    "GLIMPSE_AGENT_CONFIG_PATH",
+]
+env = {key: os.environ[key] for key in env_keys if os.environ.get(key)}
+env.setdefault("PATH", "/opt/homebrew/bin:/usr/local/bin:/usr/bin:/bin:/usr/sbin:/sbin")
+
+plist = {
+    "Label": label,
+    "ProgramArguments": [python_bin, "server.py"],
+    "WorkingDirectory": agent_dir,
+    "EnvironmentVariables": env,
+    "RunAtLoad": True,
+    "KeepAlive": True,
+    "StandardOutPath": os.path.join(log_dir, "stdout.log"),
+    "StandardErrorPath": os.path.join(log_dir, "stderr.log"),
+}
+
+with open(plist_path, "wb") as handle:
+    plistlib.dump(plist, handle, sort_keys=True)
+PY
+
+  echo "$plist"
+}
+
+deploy_agent() {
+  plist="$(generate_agent_plist)"
+  label="$(agent_label)"
+  target="$(agent_launch_target)"
+
+  launchctl bootout "$target/$label" >/dev/null 2>&1 || true
+  launchctl bootstrap "$target" "$plist"
+  launchctl kickstart -k "$target/$label"
+
+  sleep 2
+  curl -fsS "$(agent_health_url)" >/dev/null
+  echo "Agent is healthy: $(agent_health_url)"
+}
+
+deploy_agent_if_present() {
+  if agent_source_exists; then
+    deploy_agent
+  else
+    echo "Skipping agent deploy because $(agent_dir)/server.py is not present."
+  fi
+}
+
+agent_status() {
+  label="$(agent_label)"
+  target="$(agent_launch_target)"
+  launchctl print "$target/$label" || true
+  echo
+  curl -fsS "$(agent_health_url)" || true
+  echo
+}
+
+agent_logs() {
+  log_dir="$(agent_log_dir)"
+  mkdir -p "$log_dir"
+  touch "$log_dir/stdout.log" "$log_dir/stderr.log"
+  tail -f "$log_dir/stdout.log" "$log_dir/stderr.log"
+}
+
+stop_agent() {
+  label="$(agent_label)"
+  target="$(agent_launch_target)"
+  launchctl bootout "$target/$label" >/dev/null 2>&1 || true
+}
+
 upsert_env() {
   key="$1"
   value="$2"
@@ -102,6 +258,16 @@ services_for_target() {
 
 deploy_target() {
   target="$1"
+
+  if [ "$target" = "agent" ]; then
+    sync_image_env
+    echo "Deploy target: $target"
+    echo "Runtime dir:    $SCRIPT_DIR"
+    echo "Env file:       $SCRIPT_DIR/.env"
+    deploy_agent
+    return 0
+  fi
+
   services="$(services_for_target "$target")" || {
     echo "ERROR: unknown deploy target: $target" >&2
     usage >&2
@@ -125,6 +291,10 @@ deploy_target() {
     compose up -d --no-build $services
   fi
 
+  if [ "$target" = "all" ] || [ "$target" = "stack" ]; then
+    deploy_agent_if_present
+  fi
+
   compose ps
 }
 
@@ -134,14 +304,21 @@ case "$cmd" in
   -h|--help|help)
     usage
     ;;
-  stack|all|dashboard|ai-service|workers)
+  stack|all|dashboard|ai-service|workers|agent)
     deploy_target "$cmd"
     ;;
   status|ps)
     compose ps
+    echo
+    agent_status
+    ;;
+  agent-status)
+    agent_status
     ;;
   logs)
-    if [ -n "${2:-}" ]; then
+    if [ "${2:-}" = "agent" ]; then
+      agent_logs
+    elif [ -n "${2:-}" ]; then
       compose logs -f --tail="${TAIL:-200}" "$2"
     else
       compose logs -f --tail="${TAIL:-200}"
@@ -150,18 +327,26 @@ case "$cmd" in
   restart)
     target="${2:-}"
     [ -n "$target" ] || { usage >&2; exit 1; }
-    services="$(services_for_target "$target")" || { usage >&2; exit 1; }
-    # shellcheck disable=SC2086
-    compose restart $services
+    if [ "$target" = "agent" ]; then
+      deploy_agent
+    else
+      services="$(services_for_target "$target")" || { usage >&2; exit 1; }
+      # shellcheck disable=SC2086
+      compose restart $services
+    fi
     ;;
   stop)
     target="${2:-all}"
-    services="$(services_for_target "$target")" || { usage >&2; exit 1; }
-    if [ "$target" = "stack" ]; then
-      compose stop
+    if [ "$target" = "agent" ]; then
+      stop_agent
     else
-      # shellcheck disable=SC2086
-      compose stop $services
+      services="$(services_for_target "$target")" || { usage >&2; exit 1; }
+      if [ "$target" = "stack" ]; then
+        compose stop
+      else
+        # shellcheck disable=SC2086
+        compose stop $services
+      fi
     fi
     ;;
   *)

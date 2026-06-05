@@ -195,6 +195,20 @@ curl -I http://glimpse-go.site
 curl -I https://dev.api.hftvn.com
 ```
 
+Unknown hosts should close the connection instead of falling through to the default upstream:
+
+```bash
+curl -i -H "Host: a.glimpse-go.site" http://127.0.0.1
+```
+
+Expected:
+
+```txt
+curl: (52) Empty reply from server
+```
+
+In a browser, this behaves like an unreachable site instead of showing a response from Ollama or another upstream.
+
 ## Long LLM Responses
 
 Ollama chat requests can take longer than normal HTTP API calls, especially with larger models and `stream: false`.

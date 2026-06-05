@@ -1,4 +1,6 @@
 .env
+agent/
+logs/
 backups/*
 !backups/.gitkeep
 !backups/postgres/

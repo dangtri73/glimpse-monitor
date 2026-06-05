@@ -6,9 +6,9 @@ usage() {
 Pull Docker Hub images and run Glimpse Monitor on Mac Studio.
 
 Usage:
-  ./scripts/deploy-macstudio.sh <dashboard|ai-service|workers|all|stack>
+  ./scripts/deploy-macstudio.sh <dashboard|ai-service|workers|agent|all|stack>
 
-Required shell env or ENV_FILE value:
+Required shell env or ENV_FILE value for Docker image targets:
   DOCKERHUB_NAMESPACE=dangtri73
 
 Optional env:
@@ -18,11 +18,13 @@ Optional env:
   ENV_FILE=infra/.env
   RUNTIME_DIR=/Users/admin/glimpse-monitor-runtime
   RUNTIME_SOURCE_DIR=deploy-runtime/macstudio/glimpse-monitor
+  AGENT_SOURCE_DIR=agent
 
 Modes:
   dashboard   Pull/run dashboard only.
   ai-service  Pull/run AI service only.
   workers     Pull/run gateway worker containers.
+  agent       Copy/run the host monitor agent as a launchd service.
   all         Pull/run custom app images: dashboard, ai-service, workers.
   stack       Pull/run the full compose stack, including databases and Grafana.
 EOF
@@ -80,6 +82,21 @@ prepare_runtime_dir() {
   mkdir -p "$RUNTIME_DIR"
   cp -R "$RUNTIME_SOURCE_DIR"/. "$RUNTIME_DIR"/
 
+  AGENT_SOURCE_DIR="${AGENT_SOURCE_DIR:-$PROJECT_DIR/agent}"
+  case "$AGENT_SOURCE_DIR" in
+    /*) ;;
+    *) AGENT_SOURCE_DIR="$PROJECT_DIR/$AGENT_SOURCE_DIR" ;;
+  esac
+
+  if [ -d "$AGENT_SOURCE_DIR" ]; then
+    rm -rf "$RUNTIME_DIR/agent"
+    mkdir -p "$RUNTIME_DIR/agent"
+    cp -R "$AGENT_SOURCE_DIR"/. "$RUNTIME_DIR/agent"/
+  elif [ "$TARGET" = "agent" ]; then
+    echo "ERROR: agent source directory does not exist: $AGENT_SOURCE_DIR" >&2
+    exit 1
+  fi
+
   if [ ! -f "$RUNTIME_DIR/.env" ]; then
     cp "$RUNTIME_DIR/.env.example" "$RUNTIME_DIR/.env"
     echo "Created runtime env file: $RUNTIME_DIR/.env"
@@ -105,11 +122,19 @@ prepare_runtime_dir() {
 
 prepare_runtime_dir
 
+target_needs_images() {
+  case "$1" in
+    agent) return 1 ;;
+    *) return 0 ;;
+  esac
+}
+
 NAMESPACE="${DOCKERHUB_NAMESPACE:-${DOCKER_NAMESPACE:-$(env_value DOCKERHUB_NAMESPACE)}}"
-if [ -z "$NAMESPACE" ]; then
+if target_needs_images "$TARGET" && [ -z "$NAMESPACE" ]; then
   echo "ERROR: set DOCKERHUB_NAMESPACE in the shell or $ENV_FILE" >&2
   exit 1
 fi
+NAMESPACE="${NAMESPACE:-dangtri73}"
 
 IMAGE_PREFIX="${IMAGE_PREFIX:-$(env_value IMAGE_PREFIX)}"
 IMAGE_PREFIX="${IMAGE_PREFIX:-glimpse-monitor}"
@@ -157,11 +182,15 @@ services_for_target() {
   esac
 }
 
-SERVICES="$(services_for_target "$TARGET")" || {
+if [ "$TARGET" = "agent" ]; then
+  SERVICES=""
+elif SERVICES="$(services_for_target "$TARGET")"; then
+  :
+else
   echo "ERROR: unknown target: $TARGET" >&2
   usage
   exit 1
-}
+fi
 
 echo "Deploy target: $TARGET"
 if [ -n "$RUNTIME_DIR" ]; then
@@ -173,14 +202,25 @@ echo "Dashboard image:  $DASHBOARD_IMAGE"
 echo "AI service image: $AI_SERVICE_IMAGE"
 echo "Workers image:    $WORKERS_IMAGE"
 
-if [ "$TARGET" = "stack" ]; then
+if [ "$TARGET" = "agent" ]; then
+  [ -n "$RUNTIME_DIR" ] || { echo "ERROR: RUNTIME_DIR is required for agent deploy." >&2; exit 1; }
+  "$RUNTIME_DIR/deploy.sh" agent
+elif [ "$TARGET" = "stack" ]; then
   compose pull
   compose up -d --no-build
+  if [ -n "$RUNTIME_DIR" ]; then
+    "$RUNTIME_DIR/deploy.sh" agent
+  fi
 else
   # shellcheck disable=SC2086
   compose pull $SERVICES
   # shellcheck disable=SC2086
   compose up -d --no-build $SERVICES
+  if [ "$TARGET" = "all" ] && [ -n "$RUNTIME_DIR" ]; then
+    "$RUNTIME_DIR/deploy.sh" agent
+  fi
 fi
 
-compose ps
+if [ "$TARGET" != "agent" ]; then
+  compose ps
+fi
