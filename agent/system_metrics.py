@@ -16,6 +16,8 @@ from agent_common import now_ms, run_text, safe_float, slug
 class SystemMetricsCollector:
     def __init__(self) -> None:
         self._previous_network: dict[str, Any] | None = None
+        self._user_disk_cache: dict[str, Any] | None = None
+        self._user_disk_cache_at = 0.0
 
     def host(self) -> dict[str, Any]:
         hostname = socket.gethostname()
@@ -222,7 +224,85 @@ class SystemMetricsCollector:
             "usedBytes": usage.used,
             "freeBytes": usage.free,
             "usedPercent": round((usage.used / usage.total) * 100, 2) if usage.total else 0.0,
+            **self._cached_user_disk_usage(usage.total),
         }
+
+    def _cached_user_disk_usage(self, disk_total: int) -> dict[str, Any]:
+        ttl_seconds = _env_int("GLIMPSE_AGENT_USER_DISK_CACHE_SECONDS", 300, minimum=30)
+        current_time = time.time()
+
+        if self._user_disk_cache and current_time - self._user_disk_cache_at < ttl_seconds:
+            return {
+                **self._user_disk_cache,
+                "userUsageScanAgeSeconds": int(current_time - self._user_disk_cache_at),
+            }
+
+        payload = self._user_disk_usage(disk_total)
+        self._user_disk_cache = payload
+        self._user_disk_cache_at = current_time
+        return {**payload, "userUsageScanAgeSeconds": 0}
+
+    def _user_disk_usage(self, disk_total: int) -> dict[str, Any]:
+        if os.getenv("GLIMPSE_AGENT_ENABLE_USER_DISK_USAGE", "true").lower() not in {"1", "true", "yes", "on"}:
+            return _user_disk_payload(error="user disk usage scan disabled")
+
+        root = _user_disk_root()
+        if not root:
+            return _user_disk_payload(error="no user directory found")
+
+        try:
+            children = [path for path in root.iterdir() if path.is_dir() and not path.name.startswith(".")]
+        except OSError as exc:
+            return _user_disk_payload(root=root, error=str(exc))
+
+        max_users = _env_int("GLIMPSE_AGENT_USER_DISK_MAX_USERS", 64, minimum=1, maximum=256)
+        paths = sorted(children, key=lambda path: path.name.lower())[:max_users]
+        if not paths:
+            return _user_disk_payload(root=root)
+
+        timeout_seconds = _env_int("GLIMPSE_AGENT_USER_DISK_TIMEOUT_SECONDS", 30, minimum=5, maximum=300)
+        try:
+            result = subprocess.run(
+                ["du", "-sk", *[str(path) for path in paths]],
+                capture_output=True,
+                check=False,
+                shell=False,
+                text=True,
+                timeout=timeout_seconds,
+            )
+        except subprocess.TimeoutExpired:
+            return _user_disk_payload(root=root, error=f"user disk usage scan timed out after {timeout_seconds}s")
+        except (FileNotFoundError, subprocess.SubprocessError, OSError) as exc:
+            return _user_disk_payload(root=root, error=str(exc))
+
+        rows = []
+        for line in result.stdout.splitlines():
+            parts = line.split(None, 1)
+            if len(parts) != 2:
+                continue
+            try:
+                used_bytes = int(parts[0]) * 1024
+            except ValueError:
+                continue
+
+            path = Path(parts[1])
+            rows.append(
+                {
+                    "name": path.name,
+                    "path": str(path),
+                    "usedBytes": used_bytes,
+                    "usedPercentOfDisk": round((used_bytes / disk_total) * 100, 2) if disk_total else 0.0,
+                }
+            )
+
+        rows.sort(key=lambda item: item["usedBytes"], reverse=True)
+        total_user_bytes = sum(item["usedBytes"] for item in rows)
+        result_limit = _env_int("GLIMPSE_AGENT_USER_DISK_RESULT_LIMIT", 12, minimum=1, maximum=100)
+        error = None
+        if result.returncode != 0 and not rows:
+            error = (result.stderr or "user disk usage scan failed").strip().splitlines()[-1][:240]
+
+        return _user_disk_payload(root=root, rows=rows[:result_limit], total_bytes=total_user_bytes, error=error)
 
     def _network_totals(self) -> dict[str, Any]:
         if Path("/proc/net/dev").exists():
@@ -299,3 +379,42 @@ def _memory_payload(total: int, used: int, available: int) -> dict[str, Any]:
         "availableBytes": available,
         "usedPercent": round(percent, 2),
     }
+
+
+def _user_disk_root() -> Path | None:
+    configured_root = os.getenv("GLIMPSE_AGENT_USER_DISK_ROOT")
+    if configured_root:
+        path = Path(configured_root).expanduser()
+        return path if path.exists() and path.is_dir() else None
+
+    for candidate in (Path("/System/Volumes/Data/Users"), Path("/Users"), Path("/home")):
+        if candidate.exists() and candidate.is_dir():
+            return candidate
+    return None
+
+
+def _user_disk_payload(
+    *,
+    root: Path | None = None,
+    rows: list[dict[str, Any]] | None = None,
+    total_bytes: int = 0,
+    error: str | None = None,
+) -> dict[str, Any]:
+    payload = {
+        "userUsageRoot": str(root) if root else "",
+        "userUsage": rows or [],
+        "userUsageTotalBytes": total_bytes,
+        "userUsageScannedAtMs": now_ms(),
+    }
+    if error:
+        payload["userUsageError"] = error
+    return payload
+
+
+def _env_int(name: str, fallback: int, *, minimum: int, maximum: int | None = None) -> int:
+    try:
+        value = int(os.getenv(name, str(fallback)))
+    except ValueError:
+        value = fallback
+    value = max(minimum, value)
+    return min(maximum, value) if maximum is not None else value

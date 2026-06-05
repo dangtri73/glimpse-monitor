@@ -277,6 +277,94 @@ h2 {
   padding: 24px;
 }
 
+.user-disk-panel {
+  margin-top: 18px;
+}
+
+.disk-summary {
+  display: grid;
+  grid-template-columns: 0.65fr 1.35fr 0.65fr 0.65fr;
+  gap: 12px;
+  margin-bottom: 16px;
+}
+
+.disk-summary div {
+  min-width: 0;
+  padding: 14px;
+  border: 1px solid var(--line);
+  border-radius: 18px;
+  background: rgba(0, 0, 0, 0.16);
+}
+
+.disk-summary small,
+.user-disk-row small {
+  display: block;
+  color: var(--muted);
+  font-size: 0.76rem;
+  font-weight: 800;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.disk-summary strong,
+.user-disk-user strong,
+.user-disk-user small {
+  overflow-wrap: anywhere;
+}
+
+.user-disk-list {
+  display: grid;
+  gap: 10px;
+}
+
+.user-disk-row {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(128px, 0.25fr);
+  gap: 10px 16px;
+  align-items: center;
+  min-height: 90px;
+  padding: 14px;
+  border: 1px solid var(--line);
+  border-radius: 18px;
+  background: rgba(0, 0, 0, 0.16);
+}
+
+.user-disk-user,
+.user-disk-size {
+  min-width: 0;
+}
+
+.user-disk-user small {
+  margin-top: 5px;
+  color: rgba(170, 166, 148, 0.82);
+  font-weight: 600;
+  letter-spacing: 0;
+  text-transform: none;
+}
+
+.user-disk-size {
+  text-align: right;
+}
+
+.user-disk-size strong {
+  display: block;
+}
+
+.user-disk-meter {
+  grid-column: 1 / -1;
+  height: 12px;
+  overflow: hidden;
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.1);
+}
+
+.user-disk-meter span {
+  display: block;
+  height: 100%;
+  border-radius: inherit;
+  background: linear-gradient(90deg, var(--coral), var(--amber));
+}
+
 .section-header,
 .chart-header {
   display: flex;
@@ -688,6 +776,8 @@ meter {
   .metrics-grid,
   .dashboard-grid,
   .lower-grid,
+  .disk-summary,
+  .user-disk-row,
   .process-row,
   .service-row,
   .domain-form,
@@ -717,5 +807,9 @@ meter {
 
   .process-row {
     align-items: stretch;
+  }
+
+  .user-disk-size {
+    text-align: left;
   }
 }

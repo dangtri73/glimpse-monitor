@@ -246,11 +246,17 @@ export function DashboardShell() {
         <Gauge
           label="SSD used"
           value={snapshot?.resources.disk.usedPercent ?? 0}
-          detail={snapshot ? `${formatBytes(snapshot.resources.disk.freeBytes)} free on /` : "Waiting"}
+          detail={
+            snapshot
+              ? `${formatBytes(snapshot.resources.disk.freeBytes)} free on ${snapshot.resources.disk.mount}`
+              : "Waiting"
+          }
           color="#ff8c6b"
         />
         <NetworkCard snapshot={snapshot} />
       </section>
+
+      <UserDiskUsagePanel snapshot={snapshot} />
 
       <section className="dashboard-grid">
         <TopologyPanel
@@ -319,6 +325,74 @@ export function DashboardShell() {
         </div>
       </section>
     </main>
+  );
+}
+
+function UserDiskUsagePanel({ snapshot }: { snapshot: ResourceSnapshot | null }) {
+  const disk = snapshot?.resources.disk;
+  const users = disk?.userUsage ?? [];
+  const maxUserBytes = Math.max(...users.map((user) => user.usedBytes), 1);
+  const scannedAt = disk?.userUsageScannedAtMs
+    ? new Date(disk.userUsageScannedAtMs).toLocaleTimeString()
+    : "waiting";
+  const scanAge = typeof disk?.userUsageScanAgeSeconds === "number" ? `${disk.userUsageScanAgeSeconds}s ago` : scannedAt;
+
+  return (
+    <section className="panel user-disk-panel">
+      <div className="section-header">
+        <div>
+          <p className="eyebrow">SSD Detail</p>
+          <h2>User storage</h2>
+        </div>
+        <span>{disk ? `${formatBytes(disk.freeBytes)} free` : "agent not connected"}</span>
+      </div>
+
+      <div className="disk-summary">
+        <div>
+          <small>Mount</small>
+          <strong>{disk?.mount ?? "/"}</strong>
+        </div>
+        <div>
+          <small>Users Root</small>
+          <strong>{disk?.userUsageRoot || "waiting for scan"}</strong>
+        </div>
+        <div>
+          <small>Users Total</small>
+          <strong>{formatBytes(disk?.userUsageTotalBytes ?? 0)}</strong>
+        </div>
+        <div>
+          <small>Scanned</small>
+          <strong>{scanAge}</strong>
+        </div>
+      </div>
+
+      <div className="user-disk-list">
+        {users.map((user) => {
+          const width = user.usedBytes > 0 ? Math.max(2, (user.usedBytes / maxUserBytes) * 100) : 0;
+          return (
+            <article className="user-disk-row" key={user.path}>
+              <div className="user-disk-user">
+                <strong>{user.name}</strong>
+                <small>{user.path}</small>
+              </div>
+              <div className="user-disk-size">
+                <strong>{formatBytes(user.usedBytes)}</strong>
+                <small>{formatPercent(user.usedPercentOfDisk)} of SSD</small>
+              </div>
+              <div
+                className="user-disk-meter"
+                aria-label={`${user.name} uses ${formatBytes(user.usedBytes)}`}
+              >
+                <span style={{ width: `${width}%` }} />
+              </div>
+            </article>
+          );
+        })}
+      </div>
+
+      {disk?.userUsageError && <p className="panel-note">{disk.userUsageError}</p>}
+      {!users.length && <p className="empty-state">Waiting for user disk usage scan.</p>}
+    </section>
   );
 }
 
@@ -774,6 +848,10 @@ function buildMonitorSystemPrompt(snapshot: ResourceSnapshot | null) {
     .map((service) => `${service.name}:${service.status}`)
     .slice(0, 8)
     .join(", ");
+  const userDisk = (snapshot.resources.disk.userUsage ?? [])
+    .map((user) => `${user.name}:${formatBytes(user.usedBytes)}`)
+    .slice(0, 6)
+    .join(", ");
 
   return `${base}
 
@@ -782,6 +860,7 @@ Current monitor context:
 - cpu: ${snapshot.resources.cpu.loadPercent}%
 - ram: ${snapshot.resources.memory.usedPercent}%
 - disk: ${snapshot.resources.disk.usedPercent}%
+- user disk: ${userDisk || "not scanned"}
 - network: rx ${formatRate(snapshot.resources.network.rxBytesPerSecond)}, tx ${formatRate(
     snapshot.resources.network.txBytesPerSecond,
   )}
@@ -837,10 +916,16 @@ function newId() {
 }
 
 function formatBytes(value: number) {
+  if (value > 1024 ** 4) return `${(value / 1024 ** 4).toFixed(1)} TB`;
   if (value > 1024 ** 3) return `${(value / 1024 ** 3).toFixed(1)} GB`;
   if (value > 1024 ** 2) return `${(value / 1024 ** 2).toFixed(1)} MB`;
   if (value > 1024) return `${(value / 1024).toFixed(1)} KB`;
   return `${value.toFixed(0)} B`;
+}
+
+function formatPercent(value: number | null | undefined) {
+  const safeValue = Number.isFinite(value) ? Number(value) : 0;
+  return `${safeValue >= 10 ? safeValue.toFixed(0) : safeValue.toFixed(1)}%`;
 }
 
 function formatRate(value: number) {

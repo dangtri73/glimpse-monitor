@@ -29,6 +29,17 @@ export type ResourceSnapshot = {
       usedBytes: number;
       freeBytes: number;
       usedPercent: number;
+      userUsageRoot?: string;
+      userUsageTotalBytes?: number;
+      userUsageScannedAtMs?: number;
+      userUsageScanAgeSeconds?: number;
+      userUsageError?: string;
+      userUsage?: Array<{
+        name: string;
+        path: string;
+        usedBytes: number;
+        usedPercentOfDisk: number;
+      }>;
     };
     network: {
       atMs: number;
