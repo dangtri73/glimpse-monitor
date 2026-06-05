@@ -90,6 +90,26 @@ Restart or stop:
 ./deploy.sh stop all
 ```
 
+Tail the host agent logs:
+
+```sh
+./deploy.sh logs agent
+tail -n 200 ./logs/agent/stderr.log
+tail -n 200 ./logs/agent/stdout.log
+```
+
+The dashboard user-storage panel runs `du` from the host agent. Large Mac Studio user folders can exceed the default scan timeout, so tune these values in `.env` and restart the agent:
+
+```env
+GLIMPSE_AGENT_USER_DISK_ROOT=/System/Volumes/Data/Users
+GLIMPSE_AGENT_USER_DISK_TIMEOUT_SECONDS=180
+GLIMPSE_AGENT_USER_DISK_CACHE_SECONDS=1800
+```
+
+```sh
+./deploy.sh restart agent
+```
+
 ## Agent Health Checks
 
 Check the host agent directly:
@@ -143,3 +163,5 @@ Persistent runtime state:
 - `backups/`
 
 Do not commit `.env`, copied `agent/`, logs, or backups from the runtime directory.
+
+See volume each user use | du -sh /System/Volumes/Data/Users/* 2>/dev/null

@@ -188,6 +188,12 @@ env_keys = [
     "GLIMPSE_AGENT_ADMIN_TOKEN",
     "GLIMPSE_AGENT_CONFIG_PATH",
     "GLIMPSE_AGENT_DEVICE_ID",
+    "GLIMPSE_AGENT_ENABLE_USER_DISK_USAGE",
+    "GLIMPSE_AGENT_USER_DISK_ROOT",
+    "GLIMPSE_AGENT_USER_DISK_TIMEOUT_SECONDS",
+    "GLIMPSE_AGENT_USER_DISK_CACHE_SECONDS",
+    "GLIMPSE_AGENT_USER_DISK_MAX_USERS",
+    "GLIMPSE_AGENT_USER_DISK_RESULT_LIMIT",
 ]
 env = {key: os.environ[key] for key in env_keys if os.environ.get(key)}
 env.setdefault("PATH", "/opt/homebrew/bin:/usr/local/bin:/usr/bin:/bin:/usr/sbin:/sbin")
