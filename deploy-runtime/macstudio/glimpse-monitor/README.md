@@ -63,6 +63,12 @@ Status and logs:
 ./deploy.sh logs agent
 ```
 
+If the GitHub runner does not have a GUI launchd domain, the deploy script falls back from `gui/<uid>` to `user/<uid>`. You can force a domain in `.env`:
+
+```env
+GLIMPSE_AGENT_LAUNCHD_DOMAIN=user/501
+```
+
 Restart or stop:
 
 ```sh

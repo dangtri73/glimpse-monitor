@@ -86,7 +86,18 @@ agent_log_dir() {
 }
 
 agent_launch_target() {
-  echo "gui/$(id -u)"
+  load_env
+  if [ -n "${GLIMPSE_AGENT_LAUNCHD_DOMAIN:-}" ]; then
+    echo "$GLIMPSE_AGENT_LAUNCHD_DOMAIN"
+    return 0
+  fi
+
+  uid="$(id -u)"
+  if launchctl print "gui/$uid" >/dev/null 2>&1; then
+    echo "gui/$uid"
+  else
+    echo "user/$uid"
+  fi
 }
 
 agent_source_exists() {
@@ -151,9 +162,11 @@ env_keys = [
     "GLIMPSE_AGENT_ALLOW_UNVERIFIED_DOMAINS",
     "GLIMPSE_AGENT_ADMIN_TOKEN",
     "GLIMPSE_AGENT_CONFIG_PATH",
+    "GLIMPSE_AGENT_DEVICE_ID",
 ]
 env = {key: os.environ[key] for key in env_keys if os.environ.get(key)}
 env.setdefault("PATH", "/opt/homebrew/bin:/usr/local/bin:/usr/bin:/bin:/usr/sbin:/sbin")
+env.setdefault("PYTHONUNBUFFERED", "1")
 
 plist = {
     "Label": label,
@@ -173,18 +186,63 @@ PY
   echo "$plist"
 }
 
+agent_tail_logs() {
+  log_dir="$(agent_log_dir)"
+  echo "--- agent stdout ---"
+  if [ -f "$log_dir/stdout.log" ]; then
+    tail -n 80 "$log_dir/stdout.log"
+  else
+    echo "No stdout log at $log_dir/stdout.log"
+  fi
+
+  echo "--- agent stderr ---"
+  if [ -f "$log_dir/stderr.log" ]; then
+    tail -n 80 "$log_dir/stderr.log"
+  else
+    echo "No stderr log at $log_dir/stderr.log"
+  fi
+}
+
+wait_for_agent_health() {
+  url="$(agent_health_url)"
+  attempts="${1:-30}"
+  i=1
+
+  while [ "$i" -le "$attempts" ]; do
+    if curl -fsS --max-time 2 "$url" >/dev/null; then
+      echo "Agent is healthy: $url"
+      return 0
+    fi
+    echo "Waiting for agent health at $url ($i/$attempts)..." >&2
+    sleep 1
+    i=$((i + 1))
+  done
+
+  echo "ERROR: agent did not become healthy: $url" >&2
+  echo "--- launchd status ---" >&2
+  launchctl print "$(agent_launch_target)/$(agent_label)" >&2 || true
+  echo "--- verbose health check ---" >&2
+  curl -v --max-time 3 "$url" >&2 || true
+  agent_tail_logs >&2
+  return 1
+}
+
 deploy_agent() {
   plist="$(generate_agent_plist)"
   label="$(agent_label)"
   target="$(agent_launch_target)"
 
+  echo "Agent launchd target: $target"
+  echo "Agent launchd label:  $label"
+  echo "Agent source dir:     $(agent_dir)"
+  echo "Agent log dir:        $(agent_log_dir)"
+  echo "Agent plist:          $plist"
+
   launchctl bootout "$target/$label" >/dev/null 2>&1 || true
   launchctl bootstrap "$target" "$plist"
   launchctl kickstart -k "$target/$label"
 
-  sleep 2
-  curl -fsS "$(agent_health_url)" >/dev/null
-  echo "Agent is healthy: $(agent_health_url)"
+  wait_for_agent_health 30
 }
 
 deploy_agent_if_present() {
