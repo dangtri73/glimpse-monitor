@@ -11,6 +11,7 @@ __pycache__/
 .ruff_cache/
 .venv/
 venv/
+ai-service/.cache/
 
 # Node
 node_modules/

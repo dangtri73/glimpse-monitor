@@ -64,6 +64,7 @@ cp -n .env.example .env
 ./deploy.sh agent
 ./deploy.sh dashboard
 ./deploy.sh ai-service
+./deploy.sh tarot-ingest
 ./deploy.sh workers
 ```
 
@@ -90,6 +91,14 @@ Useful commands:
 ./deploy.sh logs dashboard
 ./deploy.sh restart workers
 ./deploy.sh stop all
+```
+
+Rebuild the tarot vector collection after deploying an AI image that includes the ingest script:
+
+```sh
+./deploy.sh stack
+./deploy.sh tarot-ingest
+./deploy.sh restart ai-service
 ```
 
 ## Public Gateway Vs Private Ports

@@ -212,6 +212,13 @@ export function DashboardShell() {
 
   return (
     <main className="monitor-shell">
+      <nav className="surface-nav" aria-label="Glimpse sections">
+        <a className="active" href="/" aria-current="page">
+          Monitor
+        </a>
+        <a href="/entertain">Entertain</a>
+      </nav>
+
       <section className="hero-panel">
         <div className="hero-copy">
           <p className="eyebrow">Glimpse Dev Gateway</p>

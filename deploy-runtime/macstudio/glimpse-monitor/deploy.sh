@@ -6,7 +6,7 @@ usage() {
 Deploy Glimpse Monitor runtime services on Mac Studio.
 
 Usage:
-  ./deploy.sh <stack|all|dashboard|ai-service|workers|agent>
+  ./deploy.sh <stack|all|dashboard|ai-service|workers|agent|tarot-ingest>
   ./deploy.sh status
   ./deploy.sh agent-status
   ./deploy.sh logs [service|agent]
@@ -17,6 +17,7 @@ Examples:
   ./deploy.sh stack
   IMAGE_TAG=abc1234 ./deploy.sh dashboard
   ./deploy.sh agent
+  ./deploy.sh tarot-ingest
   IMAGE_TAG=abc1234 ./deploy.sh all
   ./deploy.sh logs dashboard
   ./deploy.sh logs agent
@@ -54,9 +55,9 @@ load_env() {
 compose() {
   load_env
   if docker compose version >/dev/null 2>&1; then
-    docker compose --env-file .env -f docker-compose.yml "$@"
+    docker compose -f docker-compose.yml "$@"
   elif command -v docker-compose >/dev/null 2>&1; then
-    docker-compose --env-file .env -f docker-compose.yml "$@"
+    docker-compose -f docker-compose.yml "$@"
   else
     echo "ERROR: docker compose or docker-compose is required." >&2
     echo "PATH: $PATH" >&2
@@ -188,12 +189,6 @@ env_keys = [
     "GLIMPSE_AGENT_ADMIN_TOKEN",
     "GLIMPSE_AGENT_CONFIG_PATH",
     "GLIMPSE_AGENT_DEVICE_ID",
-    "GLIMPSE_AGENT_ENABLE_USER_DISK_USAGE",
-    "GLIMPSE_AGENT_USER_DISK_ROOT",
-    "GLIMPSE_AGENT_USER_DISK_TIMEOUT_SECONDS",
-    "GLIMPSE_AGENT_USER_DISK_CACHE_SECONDS",
-    "GLIMPSE_AGENT_USER_DISK_MAX_USERS",
-    "GLIMPSE_AGENT_USER_DISK_RESULT_LIMIT",
 ]
 env = {key: os.environ[key] for key in env_keys if os.environ.get(key)}
 env.setdefault("PATH", "/opt/homebrew/bin:/usr/local/bin:/usr/bin:/bin:/usr/sbin:/sbin")
@@ -510,6 +505,18 @@ services_for_target() {
 deploy_target() {
   target="$1"
 
+  if [ "$target" = "tarot-ingest" ]; then
+    sync_image_env ai-service
+    echo "Deploy target: tarot-ingest"
+    echo "Runtime dir:    $SCRIPT_DIR"
+    echo "Compose file:   $SCRIPT_DIR/docker-compose.yml"
+    echo "Env file:       $SCRIPT_DIR/.env"
+    compose pull ai-service
+    compose up -d qdrant
+    compose run --rm tarot-ingest
+    return 0
+  fi
+
   if [ "$target" = "agent" ]; then
     echo "Deploy target: $target"
     echo "Runtime dir:    $SCRIPT_DIR"
@@ -558,7 +565,7 @@ case "$cmd" in
   -h|--help|help)
     usage
     ;;
-  stack|all|dashboard|ai-service|workers|agent)
+  stack|all|dashboard|ai-service|workers|agent|tarot-ingest)
     deploy_target "$cmd"
     ;;
   status|ps)

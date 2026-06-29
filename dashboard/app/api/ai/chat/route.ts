@@ -13,6 +13,8 @@ type ChatRequestBody = {
   system?: string;
   model?: string;
   stream?: boolean;
+  feature?: string;
+  tarot?: unknown;
 };
 
 export const runtime = "nodejs";
@@ -43,6 +45,8 @@ export async function POST(request: NextRequest) {
             system: body.system,
             model: body.model ?? process.env.AI_CHAT_MODEL ?? "gemma3",
             stream: body.stream === true,
+            feature: sanitizeFeature(body.feature),
+            tarot: sanitizeTarotContext(body.tarot),
           }),
           signal: AbortSignal.timeout(aiTimeoutMs()),
         });
@@ -89,6 +93,66 @@ function sanitizeMessages(messages: ChatMessage[]) {
     .map((item) => ({ role: item.role, content: String(item.content ?? "").trim() }))
     .filter((item) => item.content)
     .slice(-16);
+}
+
+function sanitizeFeature(feature: string | undefined) {
+  return feature === "tarot" ? "tarot" : undefined;
+}
+
+function sanitizeTarotContext(value: unknown) {
+  if (!value || typeof value !== "object") return undefined;
+
+  const record = value as Record<string, unknown>;
+  const selectedCards = Array.isArray(record.selectedCards)
+    ? record.selectedCards
+        .slice(0, 10)
+        .map((item) => sanitizeTarotCard(item))
+        .filter((item) => item !== null)
+    : [];
+  const retrieval = record.retrieval && typeof record.retrieval === "object"
+    ? (record.retrieval as Record<string, unknown>)
+    : {};
+
+  return {
+    stage: boundedString(record.stage, 24),
+    readingType: boundedString(record.readingType, 40),
+    readingLabel: boundedString(record.readingLabel, 60),
+    spreadName: boundedString(record.spreadName, 80),
+    question: boundedString(record.question, 240),
+    selectedCards,
+    retrieval: {
+      vectorDb: boundedString(retrieval.vectorDb, 80),
+      candidateLimit: boundedNumber(retrieval.candidateLimit, 24),
+      rerankLimit: boundedNumber(retrieval.rerankLimit, 8),
+      reranker: boundedString(retrieval.reranker, 80),
+    },
+  };
+}
+
+function sanitizeTarotCard(value: unknown) {
+  if (!value || typeof value !== "object") return null;
+  const record = value as Record<string, unknown>;
+  const keywords = Array.isArray(record.keywords)
+    ? record.keywords.map((keyword) => boundedString(keyword, 32)).filter(Boolean).slice(0, 8)
+    : [];
+
+  return {
+    id: boundedString(record.id, 80),
+    name: boundedString(record.name, 80),
+    position: boundedString(record.position, 80),
+    orientation: boundedString(record.orientation, 20),
+    suit: boundedString(record.suit, 40),
+    keywords,
+  };
+}
+
+function boundedString(value: unknown, maxLength: number) {
+  return String(value ?? "").trim().slice(0, maxLength);
+}
+
+function boundedNumber(value: unknown, fallback: number) {
+  const parsed = Number(value);
+  return Number.isFinite(parsed) && parsed > 0 ? Math.min(parsed, 100) : fallback;
 }
 
 function aiServiceUrl() {

@@ -220,8 +220,53 @@ services:
       OLLAMA_BASE_URL: ${OLLAMA_BASE_URL:-http://host.docker.internal:11434}
       OLLAMA_MODEL: ${OLLAMA_MODEL:-gemma3:270m}
       OLLAMA_TIMEOUT_SECONDS: ${OLLAMA_TIMEOUT_SECONDS:-60}
+      OLLAMA_USER_AGENT: ${OLLAMA_USER_AGENT:-GlimpseAI/0.1}
+      OLLAMA_EMBEDDING_BASE_URL: ${OLLAMA_EMBEDDING_BASE_URL:-${OLLAMA_BASE_URL:-http://host.docker.internal:11434}}
+      OLLAMA_EMBEDDING_MODEL: ${OLLAMA_EMBEDDING_MODEL:-bge-m3:latest}
+      TAROT_RAG_PROVIDER: ${TAROT_RAG_PROVIDER:-auto}
+      TAROT_QDRANT_URL: ${TAROT_QDRANT_URL:-http://qdrant:6333}
+      TAROT_QDRANT_COLLECTION: ${TAROT_QDRANT_COLLECTION:-tarot_knowledge}
+      TAROT_RAG_TIMEOUT_SECONDS: ${TAROT_RAG_TIMEOUT_SECONDS:-3}
+      TAROT_INCLUDE_HF: ${TAROT_INCLUDE_HF:-true}
+      TAROT_HF_SOURCE: ${TAROT_HF_SOURCE:-parquet}
+      TAROT_HF_PARQUET_URL: ${TAROT_HF_PARQUET_URL:-https://huggingface.co/datasets/barissglc/tarot/resolve/main/tarot_readings.parquet}
+      TAROT_HF_CACHE_PATH: ${TAROT_HF_CACHE_PATH:-.cache/tarot_readings.parquet}
+      TAROT_HF_LIMIT: ${TAROT_HF_LIMIT:-6000}
+      TAROT_HF_PAGE_DELAY_SECONDS: ${TAROT_HF_PAGE_DELAY_SECONDS:-0.5}
+      TAROT_HF_FETCH_RETRIES: ${TAROT_HF_FETCH_RETRIES:-6}
+      TAROT_INGEST_TIMEOUT_SECONDS: ${TAROT_INGEST_TIMEOUT_SECONDS:-120}
+      TAROT_INGEST_RETRIES: ${TAROT_INGEST_RETRIES:-3}
     ports:
       - "${AI_SERVICE_BIND_HOST:-127.0.0.1}:${AI_SERVICE_HOST_PORT:-8771}:8770"
+    networks:
+      - monitor
+    logging: *default-logging
+
+  tarot-ingest:
+    image: ${AI_SERVICE_IMAGE:-glimpse-monitor-ai-service:local}
+    container_name: glimpse-monitor-tarot-ingest
+    profiles: ["tools"]
+    restart: "no"
+    command: ["python", "scripts/ingest_tarot_knowledge.py", "--recreate"]
+    depends_on:
+      - qdrant
+    environment:
+      OLLAMA_BASE_URL: ${OLLAMA_BASE_URL:-http://host.docker.internal:11434}
+      OLLAMA_USER_AGENT: ${OLLAMA_USER_AGENT:-GlimpseAI/0.1}
+      OLLAMA_EMBEDDING_BASE_URL: ${OLLAMA_EMBEDDING_BASE_URL:-${OLLAMA_BASE_URL:-http://host.docker.internal:11434}}
+      OLLAMA_EMBEDDING_MODEL: ${OLLAMA_EMBEDDING_MODEL:-bge-m3:latest}
+      OLLAMA_EMBEDDING_USER_AGENT: ${OLLAMA_EMBEDDING_USER_AGENT:-${OLLAMA_USER_AGENT:-GlimpseAI/0.1}}
+      TAROT_QDRANT_URL: ${TAROT_QDRANT_URL:-http://qdrant:6333}
+      TAROT_QDRANT_COLLECTION: ${TAROT_QDRANT_COLLECTION:-tarot_knowledge}
+      TAROT_INCLUDE_HF: ${TAROT_INCLUDE_HF:-true}
+      TAROT_HF_SOURCE: ${TAROT_HF_SOURCE:-parquet}
+      TAROT_HF_PARQUET_URL: ${TAROT_HF_PARQUET_URL:-https://huggingface.co/datasets/barissglc/tarot/resolve/main/tarot_readings.parquet}
+      TAROT_HF_CACHE_PATH: ${TAROT_HF_CACHE_PATH:-.cache/tarot_readings.parquet}
+      TAROT_HF_LIMIT: ${TAROT_HF_LIMIT:-6000}
+      TAROT_HF_PAGE_DELAY_SECONDS: ${TAROT_HF_PAGE_DELAY_SECONDS:-0.5}
+      TAROT_HF_FETCH_RETRIES: ${TAROT_HF_FETCH_RETRIES:-6}
+      TAROT_INGEST_TIMEOUT_SECONDS: ${TAROT_INGEST_TIMEOUT_SECONDS:-120}
+      TAROT_INGEST_RETRIES: ${TAROT_INGEST_RETRIES:-3}
     networks:
       - monitor
     logging: *default-logging

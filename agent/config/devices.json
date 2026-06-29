@@ -15,7 +15,11 @@
       "lanIp": "${MACSTUDIO_LAN_IP}",
       "publicHost": null,
       "healthPath": "http://${MACSTUDIO_LAN_IP}:11435/api/tags",
-      "tags": ["ollama", "gpu", "lan"]
+      "tags": [
+        "ollama",
+        "gpu",
+        "lan"
+      ]
     },
     {
       "id": "dev-gateway",
@@ -24,7 +28,11 @@
       "lanIp": null,
       "publicHost": "dev.api.hftvn.com",
       "healthPath": "https://dev.api.hftvn.com/api/tags",
-      "tags": ["nginx", "public", "ssl"]
+      "tags": [
+        "nginx",
+        "public",
+        "ssl"
+      ]
     }
   ],
   "services": [
@@ -32,7 +40,9 @@
       "id": "ollama",
       "name": "Ollama",
       "processPattern": "ollama",
-      "ports": [11435],
+      "ports": [
+        11435
+      ],
       "startCommand": null,
       "stopCommand": null,
       "restartCommand": null
@@ -41,7 +51,10 @@
       "id": "nginx",
       "name": "Nginx Gateway",
       "processPattern": "nginx",
-      "ports": [80, 443],
+      "ports": [
+        80,
+        443
+      ],
       "startCommand": null,
       "stopCommand": null,
       "restartCommand": null
@@ -50,7 +63,9 @@
       "id": "ssh",
       "name": "SSH",
       "processPattern": "sshd",
-      "ports": [22],
+      "ports": [
+        22
+      ],
       "startCommand": null,
       "stopCommand": null,
       "restartCommand": null
@@ -59,11 +74,21 @@
   "domainGateway": {
     "baseCname": "gateway.glimpse-go.site",
     "publicIp": "115.73.213.75",
-    "allowedPublicPorts": [80],
-    "allowedProtocols": ["http"],
-    "allowedTargetHosts": ["${MACSTUDIO_LAN_IP}"],
+    "allowedPublicPorts": [
+      80
+    ],
+    "allowedProtocols": [
+      "http"
+    ],
+    "allowedTargetHosts": [
+      "${MACSTUDIO_LAN_IP}"
+    ],
     "allowedHostSuffixes": [],
-    "reservedHosts": ["dev.hftvn.com", "glimpse-go.site", "www.glimpse-go.site"],
+    "reservedHosts": [
+      "dev.hftvn.com",
+      "glimpse-go.site",
+      "www.glimpse-go.site"
+    ],
     "targets": [
       {
         "id": "glimpse-dashboard",
@@ -98,11 +123,58 @@
     ],
     "nginx": {
       "generatedConfPath": "../../nginx-docker/nginx/generated/domain-maps.conf",
-      "testCommand": ["docker", "exec", "glimpse-nginx", "nginx", "-t"],
-      "reloadCommand": ["docker", "exec", "glimpse-nginx", "nginx", "-s", "reload"]
+      "testCommand": [
+        "docker",
+        "exec",
+        "glimpse-nginx",
+        "nginx",
+        "-t"
+      ],
+      "reloadCommand": [
+        "docker",
+        "exec",
+        "glimpse-nginx",
+        "nginx",
+        "-s",
+        "reload"
+      ]
     }
   },
-  "auditEvents": [],
+  "auditEvents": [
+    {
+      "id": "1780971216528-port_mapping-draft_created",
+      "actor": "local-dashboard",
+      "eventType": "port_mapping.draft_created",
+      "targetType": "port_mapping",
+      "targetId": "app-glimpse-go-site",
+      "payload": {
+        "id": "app-glimpse-go-site",
+        "name": "app.glimpse-go.site",
+        "publicHost": "app.glimpse-go.site",
+        "publicPort": 80,
+        "targetId": "glimpse-dashboard",
+        "targetDeviceId": "mac-studio",
+        "targetHost": "192.168.1.4",
+        "targetPort": 3000,
+        "upstream": "http://192.168.1.4:3000",
+        "protocol": "http",
+        "status": "draft",
+        "authRequired": true,
+        "ownerTeamId": null,
+        "createdAt": "2026-06-09T02:13:36Z",
+        "updatedAt": "2026-06-09T02:13:36Z",
+        "createdBy": "local-dashboard",
+        "verification": {
+          "method": "dns-txt",
+          "name": "_glimpse.app.glimpse-go.site",
+          "value": "glimpse-domain=1Q20DdLLRzaHlRaGQKdWDGdc",
+          "status": "pending",
+          "checkedAt": null
+        }
+      },
+      "createdAt": "2026-06-09T02:13:36Z"
+    }
+  ],
   "portMappings": [
     {
       "id": "ollama-public",
@@ -115,6 +187,31 @@
       "protocol": "https",
       "status": "planned",
       "authRequired": true
+    },
+    {
+      "id": "app-glimpse-go-site",
+      "name": "app.glimpse-go.site",
+      "publicHost": "app.glimpse-go.site",
+      "publicPort": 80,
+      "targetId": "glimpse-dashboard",
+      "targetDeviceId": "mac-studio",
+      "targetHost": "192.168.1.4",
+      "targetPort": 3000,
+      "upstream": "http://192.168.1.4:3000",
+      "protocol": "http",
+      "status": "draft",
+      "authRequired": true,
+      "ownerTeamId": null,
+      "createdAt": "2026-06-09T02:13:36Z",
+      "updatedAt": "2026-06-09T02:16:45Z",
+      "createdBy": "local-dashboard",
+      "verification": {
+        "method": "dns-txt",
+        "name": "_glimpse.app.glimpse-go.site",
+        "value": "glimpse-domain=1Q20DdLLRzaHlRaGQKdWDGdc",
+        "status": "pending",
+        "checkedAt": "2026-06-09T02:16:45Z"
+      }
     }
   ]
 }

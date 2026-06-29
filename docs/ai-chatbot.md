@@ -77,6 +77,39 @@ Request:
 }
 ```
 
+Tarot entertainment request:
+
+```json
+{
+  "feature": "tarot",
+  "message": "Please read this General tarot spread for my question.",
+  "stream": true,
+  "tarot": {
+    "stage": "reading",
+    "readingType": "general",
+    "readingLabel": "General",
+    "spreadName": "Five-card path",
+    "question": "What should I understand about my current path?",
+    "selectedCards": [
+      {
+        "id": "fool",
+        "name": "The Fool",
+        "position": "Where you are now",
+        "orientation": "upright",
+        "suit": "Major Arcana",
+        "keywords": ["beginning", "trust", "leap"]
+      }
+    ],
+    "retrieval": {
+      "vectorDb": "qdrant-or-pgvector",
+      "candidateLimit": 24,
+      "rerankLimit": 8,
+      "reranker": "cross-encoder-compatible"
+    }
+  }
+}
+```
+
 Response:
 
 ```json
@@ -84,9 +117,58 @@ Response:
   "answer": "Short answer from Ollama",
   "model": "gemma3:270m",
   "provider": "ollama",
-  "ragUsed": false
+  "ragUsed": false,
+  "rag": null
 }
 ```
+
+For `feature: "tarot"`, `ai-service` builds a tarot-specific system prompt before calling Ollama. The prompt includes:
+
+- entertainment-only and professional-advice safety boundaries
+- selected spread type, user question, card positions, card names, and orientation
+- an explicit RAG technical contract for vector retrieval and reranking
+- retrieved context from Qdrant when `tarot_knowledge` is populated, otherwise the in-memory seed corpus
+
+Current tarot RAG status:
+
+```txt
+Dashboard /entertain
+  -> /api/ai/chat with feature=tarot and tarot context
+  -> ai-service prompt builder
+  -> Qdrant tarot_knowledge collection when available
+  -> in-memory tarot_knowledge fallback when Qdrant is unavailable or empty
+  -> Ollama /api/chat
+```
+
+The Qdrant ingestion script can import:
+
+- local Glimpse tarot seed documents
+- `metabismuth/tarot-json` canonical 78-card deck metadata
+- optional `barissglc/tarot` Hugging Face three-card example readings
+
+`metabismuth/tarot-json` is MIT licensed. The Hugging Face dataset does not declare a license on its dataset card, so keep that import optional unless the deployment owner has accepted the source risk.
+
+Start Qdrant:
+
+```bash
+cd /Users/vutri/Desktop/projects/Glimpse/glimpse-monitor/infra
+docker compose up -d qdrant
+```
+
+Ingest only seed docs plus the canonical deck:
+
+```bash
+cd /Users/vutri/Desktop/projects/Glimpse/glimpse-monitor/ai-service
+python3 scripts/ingest_tarot_knowledge.py --recreate
+```
+
+Add Hugging Face examples when licensing is acceptable:
+
+```bash
+python3 scripts/ingest_tarot_knowledge.py --include-hf --hf-limit 500
+```
+
+Set `--hf-limit 5769` to import the full displayed dataset.
 
 Streaming request:
 

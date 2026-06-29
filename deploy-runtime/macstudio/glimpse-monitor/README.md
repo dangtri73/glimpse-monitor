@@ -50,6 +50,7 @@ Run these from `/Users/admin/glimpse-monitor-runtime`:
 ./deploy.sh all
 ./deploy.sh dashboard
 ./deploy.sh ai-service
+./deploy.sh tarot-ingest
 ./deploy.sh workers
 ./deploy.sh agent
 ```
@@ -80,6 +81,18 @@ If another unknown process owns `GLIMPSE_AGENT_PORT`, deploy fails and prints `l
 When `GLIMPSE_AGENT_AUTO_PORT_FALLBACK=true`, deploy can instead pick a nearby free port and update both `GLIMPSE_AGENT_PORT` and `MONITOR_AGENT_URL` in `.env`.
 
 Every successful agent deploy force-recreates the dashboard container so the server-side Next.js API routes read the current `MONITOR_AGENT_URL`.
+
+## Tarot Knowledge Ingestion
+
+The `tarot-ingest` target recreates the Qdrant `tarot_knowledge` collection from Glimpse seed guidance, tarot card metadata, and the `barissglc/tarot` Hugging Face parquet dataset.
+
+```sh
+./deploy.sh stack
+./deploy.sh tarot-ingest
+./deploy.sh restart ai-service
+```
+
+The ingest job uses the same `OLLAMA_EMBEDDING_*` and `TAROT_*` values as `ai-service`. Keep Qdrant private; do not expose `6333` or `6334` through the public gateway.
 
 Restart or stop:
 
