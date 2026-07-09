@@ -18,6 +18,7 @@ Use this gateway for HTTP services only:
 dashboard.glimpse-go.site  -> http://<macstudio-lan-ip>:3000
 ai.glimpse-go.site         -> http://<macstudio-lan-ip>:8771
 ollama.glimpse-go.site     -> http://<macstudio-lan-ip>:11435
+mlx.glimpse-go.site        -> http://<macstudio-lan-ip>:8088
 ```
 
 Do not route Postgres, Kafka, ClickHouse, Redis, Qdrant, Prometheus, Grafana, Adminer, or Kafka UI through public Nginx. Use SSH tunnels for those private ports.
@@ -38,6 +39,7 @@ DEFAULT_UPSTREAM=http://${MACSTUDIO_LAN_IP}:11435
 DASHBOARD_UPSTREAM=http://${MACSTUDIO_LAN_IP}:3000
 AI_UPSTREAM=http://${MACSTUDIO_LAN_IP}:8771
 OLLAMA_UPSTREAM=http://${MACSTUDIO_LAN_IP}:11435
+MLX_UPSTREAM=http://${MACSTUDIO_LAN_IP}:8088
 ```
 
 Change `MACSTUDIO_LAN_IP` in `/Users/tri/nginx-docker/.env` when the Mac Studio LAN IP changes, then run `./deploy.sh deploy`. The deploy script rewrites the upstream URLs from that one value.
@@ -109,6 +111,7 @@ GLIMPSE_WWW_DOMAIN=www.glimpse-go.site
 DASHBOARD_DOMAIN=dashboard.glimpse-go.site
 AI_DOMAIN=ai.glimpse-go.site
 OLLAMA_DOMAIN=ollama.glimpse-go.site
+MLX_DOMAIN=mlx.glimpse-go.site
 
 NGINX_IMAGE=dangtri73/glimpse-nginx:latest
 NGINX_TEMPLATE_MODE=dev-ssl
@@ -126,6 +129,7 @@ DEFAULT_UPSTREAM=http://${MACSTUDIO_LAN_IP}:11435
 DASHBOARD_UPSTREAM=http://${MACSTUDIO_LAN_IP}:3000
 AI_UPSTREAM=http://${MACSTUDIO_LAN_IP}:8771
 OLLAMA_UPSTREAM=http://${MACSTUDIO_LAN_IP}:11435
+MLX_UPSTREAM=http://${MACSTUDIO_LAN_IP}:8088
 ```
 
 ## Copy The Existing Dev API Certificate

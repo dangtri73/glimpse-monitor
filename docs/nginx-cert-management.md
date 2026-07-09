@@ -19,7 +19,7 @@ nginx-docker/certs/
   cloudflare/glimpse-go.site/privkey.pem
 ```
 
-CI/CD can pull and restart `dangtri73/glimpse-nginx:<tag>` without touching certs. The cert files remain on the dev server.
+CI/CD pulls and restarts `dangtri73/glimpse-nginx:latest` without touching certs. The cert files remain on the dev server.
 
 ## Dev Server Runtime Directory
 

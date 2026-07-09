@@ -109,6 +109,7 @@ The dev server Nginx gateway should expose only HTTP services:
 dashboard.glimpse-go.site  -> http://<macstudio-lan-ip>:3000
 ai.glimpse-go.site         -> http://<macstudio-lan-ip>:8771
 ollama.glimpse-go.site     -> http://<macstudio-lan-ip>:11435
+mlx.glimpse-go.site        -> http://<macstudio-lan-ip>:8088
 ```
 
 Set these in `/Users/tri/nginx-docker/.env`:
@@ -118,9 +119,10 @@ MACSTUDIO_LAN_IP=<macstudio-lan-ip>
 DASHBOARD_DOMAIN=dashboard.glimpse-go.site
 AI_DOMAIN=ai.glimpse-go.site
 OLLAMA_DOMAIN=ollama.glimpse-go.site
+MLX_DOMAIN=mlx.glimpse-go.site
 ```
 
-Run `./deploy.sh deploy` after editing `MACSTUDIO_LAN_IP`; it derives `DASHBOARD_UPSTREAM`, `AI_UPSTREAM`, and `OLLAMA_UPSTREAM` from that value.
+Run `./deploy.sh deploy` after editing `MACSTUDIO_LAN_IP`; it derives `DASHBOARD_UPSTREAM`, `AI_UPSTREAM`, `OLLAMA_UPSTREAM`, and `MLX_UPSTREAM` from that value.
 
 Set the same value in GitHub Actions repository variables:
 
@@ -134,6 +136,7 @@ Add Cloudflare DNS records pointing to the dev server public IP:
 A    dashboard  <dev-server-public-ip>
 A    ai         <dev-server-public-ip>
 A    ollama     <dev-server-public-ip>
+A    mlx        <dev-server-public-ip>
 ```
 
 Do not expose database or broker ports publicly through Nginx:
@@ -213,6 +216,7 @@ Test gateway targets from the dev server:
 curl -I http://<macstudio-lan-ip>:3000
 curl -I http://<macstudio-lan-ip>:8771
 curl http://<macstudio-lan-ip>:11435/api/tags
+curl -I http://<macstudio-lan-ip>:8088
 ```
 
 ## CI Usage

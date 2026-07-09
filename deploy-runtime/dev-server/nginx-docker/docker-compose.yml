@@ -21,6 +21,7 @@ services:
       DASHBOARD_DOMAIN: ${DASHBOARD_DOMAIN:-dashboard.glimpse-go.site}
       AI_DOMAIN: ${AI_DOMAIN:-ai.glimpse-go.site}
       OLLAMA_DOMAIN: ${OLLAMA_DOMAIN:-ollama.glimpse-go.site}
+      MLX_DOMAIN: ${MLX_DOMAIN:-mlx.glimpse-go.site}
       MACSTUDIO_LAN_IP: "${MACSTUDIO_LAN_IP:?Set MACSTUDIO_LAN_IP in .env}"
       DEV_SSL_CERTIFICATE: ${DEV_SSL_CERTIFICATE:-/etc/letsencrypt/live/dev.api.hftvn.com/fullchain.pem}
       DEV_SSL_CERTIFICATE_KEY: ${DEV_SSL_CERTIFICATE_KEY:-/etc/letsencrypt/live/dev.api.hftvn.com/privkey.pem}
@@ -30,6 +31,7 @@ services:
       DASHBOARD_UPSTREAM: "${DASHBOARD_UPSTREAM:?Run ./deploy.sh deploy or set DASHBOARD_UPSTREAM in .env}"
       AI_UPSTREAM: "${AI_UPSTREAM:?Run ./deploy.sh deploy or set AI_UPSTREAM in .env}"
       OLLAMA_UPSTREAM: "${OLLAMA_UPSTREAM:?Run ./deploy.sh deploy or set OLLAMA_UPSTREAM in .env}"
+      MLX_UPSTREAM: "${MLX_UPSTREAM:?Run ./deploy.sh deploy or set MLX_UPSTREAM in .env}"
       NGINX_TEMPLATE_MODE: ${NGINX_TEMPLATE_MODE:-dev-ssl}
     extra_hosts:
       - "host.docker.internal:host-gateway"

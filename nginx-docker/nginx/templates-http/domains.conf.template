@@ -95,4 +95,21 @@ server {
     }
 }
 
+server {
+    listen 80;
+    server_name ${MLX_DOMAIN};
+
+    client_max_body_size 25m;
+
+    location = /nginx-health {
+        access_log off;
+        return 200 "ok\n";
+    }
+
+    location / {
+        proxy_pass ${MLX_UPSTREAM};
+        include /etc/nginx/snippets/mlx-stream-proxy.conf;
+    }
+}
+
 include /etc/nginx/generated/*.conf;

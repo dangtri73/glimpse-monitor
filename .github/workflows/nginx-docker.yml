@@ -14,8 +14,7 @@ on:
 
 env:
   DOCKER_PLATFORM: ${{ vars.DOCKER_PLATFORM || 'linux/arm64' }}
-  DOCKERHUB_NAMESPACE: ${{ vars.DOCKERHUB_NAMESPACE || 'dangtri73' }}
-  NGINX_DOCKERHUB_REPO: ${{ vars.NGINX_DOCKERHUB_REPO || 'glimpse-nginx' }}
+  NGINX_IMAGE: dangtri73/glimpse-nginx:latest
   MACSTUDIO_DOCKER_SOCKET: ${{ vars.MACSTUDIO_DOCKER_SOCKET || '' }}
   MACSTUDIO_LAN_IP: ${{ vars.MACSTUDIO_LAN_IP }}
 
@@ -29,13 +28,10 @@ jobs:
       - name: Check out repository
         uses: actions/checkout@v4
 
-      - name: Compute image names
+      - name: Compute image name
         run: |
           set -eu
-          short_sha="${GITHUB_SHA::7}"
-          image="${DOCKERHUB_NAMESPACE}/${NGINX_DOCKERHUB_REPO}"
-          echo "SHORT_SHA=$short_sha" >> "$GITHUB_ENV"
-          echo "IMAGE=$image" >> "$GITHUB_ENV"
+          echo "IMAGE=$NGINX_IMAGE" >> "$GITHUB_ENV"
 
       - name: Configure Docker Hub auth
         env:
@@ -103,7 +99,8 @@ jobs:
         run: |
           set -eu
           test -f "$DOCKER_CONFIG/config.json"
-          docker build --pull --platform "$DOCKER_PLATFORM" -t "$IMAGE:$SHORT_SHA" .
+          ./build.sh trace
+          docker build --pull --platform "$DOCKER_PLATFORM" -t "$IMAGE" .
           docker run --rm \
             -e NGINX_TEMPLATE_MODE=http \
             -e DEV_DOMAIN=dev.api.hftvn.com \
@@ -112,28 +109,20 @@ jobs:
             -e DASHBOARD_DOMAIN=dashboard.glimpse-go.site \
             -e AI_DOMAIN=ai.glimpse-go.site \
             -e OLLAMA_DOMAIN=ollama.glimpse-go.site \
+            -e MLX_DOMAIN=mlx.glimpse-go.site \
             -e MACSTUDIO_LAN_IP=127.0.0.1 \
             -e DEFAULT_UPSTREAM=http://127.0.0.1:11435 \
             -e DASHBOARD_UPSTREAM=http://127.0.0.1:3000 \
             -e AI_UPSTREAM=http://127.0.0.1:8771 \
             -e OLLAMA_UPSTREAM=http://127.0.0.1:11435 \
-            "$IMAGE:$SHORT_SHA" nginx -t
+            -e MLX_UPSTREAM=http://127.0.0.1:8088 \
+            "$IMAGE" nginx -t
 
       - name: Push Docker Hub image
         run: |
           set -eu
           test -f "$DOCKER_CONFIG/config.json"
-          docker push "$IMAGE:$SHORT_SHA"
-
-          if [ "$GITHUB_REF" = "refs/heads/main" ]; then
-            docker tag "$IMAGE:$SHORT_SHA" "$IMAGE:latest"
-            docker push "$IMAGE:latest"
-          fi
-
-          if [ "${GITHUB_REF_TYPE:-}" = "tag" ]; then
-            docker tag "$IMAGE:$SHORT_SHA" "$IMAGE:$GITHUB_REF_NAME"
-            docker push "$IMAGE:$GITHUB_REF_NAME"
-          fi
+          docker push "$IMAGE"
 
       - name: Deploy to dev server
         if: github.ref == 'refs/heads/main'
@@ -166,7 +155,7 @@ jobs:
           chmod 600 ~/.ssh/id_ed25519
           ssh-keyscan -p "$DEV_SSH_PORT" "$DEV_SSH_HOST" >> ~/.ssh/known_hosts
 
-          deploy_image="$IMAGE:$SHORT_SHA"
+          deploy_image="$IMAGE"
 
           case "$DEV_NGINX_DOCKER_DIR" in
             /Users/tri/*) ;;

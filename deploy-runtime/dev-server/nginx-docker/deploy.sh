@@ -6,7 +6,7 @@ usage() {
 Deploy the Glimpse Nginx gateway runtime.
 
 Usage:
-  ./deploy.sh deploy [image]
+  ./deploy.sh deploy
   ./deploy.sh status
   ./deploy.sh logs
   ./deploy.sh test
@@ -16,8 +16,7 @@ Usage:
   ./deploy.sh certs <certs.sh args...>
 
 Examples:
-  ./deploy.sh deploy dangtri73/glimpse-nginx:latest
-  NGINX_IMAGE=dangtri73/glimpse-nginx:abc1234 ./deploy.sh deploy
+  ./deploy.sh deploy
   ./deploy.sh certs list
   ./deploy.sh certs check cloudflare glimpse-go.site
 EOF
@@ -25,6 +24,8 @@ EOF
 
 SCRIPT_DIR="$(CDPATH= cd -- "$(dirname -- "$0")" && pwd)"
 cd "$SCRIPT_DIR"
+
+CANONICAL_NGINX_IMAGE="dangtri73/glimpse-nginx:latest"
 
 export PATH="/opt/homebrew/bin:/usr/local/bin:/opt/local/bin:/usr/bin:/bin:/usr/sbin:/sbin:$PATH"
 
@@ -64,7 +65,23 @@ nginx_test() {
   echo "ERROR: nginx config test failed after $attempts attempts." >&2
   compose ps nginx >&2 || true
   compose logs --tail=80 nginx >&2 || true
+  docker logs --tail=80 glimpse-nginx >&2 || true
   return 1
+}
+
+normalize_image() {
+  image="${1:-}"
+
+  case "$image" in
+    ""|latest|"$CANONICAL_NGINX_IMAGE")
+      printf '%s\n' "$CANONICAL_NGINX_IMAGE"
+      ;;
+    *)
+      echo "ERROR: Nginx deploy always uses $CANONICAL_NGINX_IMAGE, got: $image" >&2
+      echo "Run: ./deploy.sh deploy" >&2
+      exit 1
+      ;;
+  esac
 }
 
 upsert_env() {
@@ -112,16 +129,40 @@ sync_macstudio_upstreams() {
   upsert_env DASHBOARD_UPSTREAM "${DASHBOARD_UPSTREAM:-http://$macstudio_lan_ip:3000}"
   upsert_env AI_UPSTREAM "${AI_UPSTREAM:-http://$macstudio_lan_ip:8771}"
   upsert_env OLLAMA_UPSTREAM "${OLLAMA_UPSTREAM:-http://$macstudio_lan_ip:11435}"
+  upsert_env MLX_UPSTREAM "${MLX_UPSTREAM:-http://$macstudio_lan_ip:8088}"
+}
+
+validate_runtime_config() {
+  config="$(compose config)"
+
+  for key in \
+    DEV_DOMAIN \
+    GLIMPSE_DOMAIN \
+    GLIMPSE_WWW_DOMAIN \
+    DASHBOARD_DOMAIN \
+    AI_DOMAIN \
+    OLLAMA_DOMAIN \
+    MLX_DOMAIN \
+    DEFAULT_UPSTREAM \
+    DASHBOARD_UPSTREAM \
+    AI_UPSTREAM \
+    OLLAMA_UPSTREAM \
+    MLX_UPSTREAM; do
+    if ! printf '%s\n' "$config" | grep -q "$key:"; then
+      echo "ERROR: docker-compose.yml does not pass $key to the nginx container." >&2
+      echo "Sync deploy-runtime/dev-server/nginx-docker/docker-compose.yml to this runtime directory." >&2
+      exit 1
+    fi
+  done
 }
 
 deploy_nginx() {
-  image="${1:-${NGINX_IMAGE:-}}"
+  image="$(normalize_image "${1:-${NGINX_IMAGE:-}}")"
   ensure_env
   sync_macstudio_upstreams
 
-  if [ -n "$image" ]; then
-    upsert_env NGINX_IMAGE "$image"
-  fi
+  upsert_env NGINX_IMAGE "$image"
+  validate_runtime_config
 
   chmod +x scripts/certs.sh
   compose pull nginx
