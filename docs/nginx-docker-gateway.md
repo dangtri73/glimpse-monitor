@@ -19,6 +19,7 @@ dashboard.glimpse-go.site  -> http://<macstudio-lan-ip>:3000
 ai.glimpse-go.site         -> http://<macstudio-lan-ip>:8771
 ollama.glimpse-go.site     -> http://<macstudio-lan-ip>:11435
 mlx.glimpse-go.site        -> http://<macstudio-lan-ip>:8088
+dev.api.hftvn.com          -> http://host.docker.internal:5000
 ```
 
 Do not route Postgres, Kafka, ClickHouse, Redis, Qdrant, Prometheus, Grafana, Adminer, or Kafka UI through public Nginx. Use SSH tunnels for those private ports.
@@ -35,6 +36,7 @@ The default upstream is:
 
 ```env
 MACSTUDIO_LAN_IP=<macstudio-lan-ip>
+DEV_UPSTREAM=http://host.docker.internal:5000
 DEFAULT_UPSTREAM=http://${MACSTUDIO_LAN_IP}:11435
 DASHBOARD_UPSTREAM=http://${MACSTUDIO_LAN_IP}:3000
 AI_UPSTREAM=http://${MACSTUDIO_LAN_IP}:8771
@@ -125,6 +127,7 @@ GLIMPSE_SSL_CERTIFICATE=/etc/ssl/cloudflare/glimpse-go.site/fullchain.pem
 GLIMPSE_SSL_CERTIFICATE_KEY=/etc/ssl/cloudflare/glimpse-go.site/privkey.pem
 
 MACSTUDIO_LAN_IP=<macstudio-lan-ip>
+DEV_UPSTREAM=http://host.docker.internal:5000
 DEFAULT_UPSTREAM=http://${MACSTUDIO_LAN_IP}:11435
 DASHBOARD_UPSTREAM=http://${MACSTUDIO_LAN_IP}:3000
 AI_UPSTREAM=http://${MACSTUDIO_LAN_IP}:8771
@@ -190,7 +193,7 @@ Expected:
 
 - `glimpse-go.site` returns HTTP response while using `templates-dev-ssl`
 - `dev.api.hftvn.com` redirects HTTP to HTTPS and serves HTTPS
-- `502 Bad Gateway` means Nginx is running but `DEFAULT_UPSTREAM` is not reachable
+- `502 Bad Gateway` means Nginx is running but the matching upstream, such as `DEV_UPSTREAM` or `DEFAULT_UPSTREAM`, is not reachable
 
 From another machine:
 

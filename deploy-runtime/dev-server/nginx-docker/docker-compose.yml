@@ -27,6 +27,7 @@ services:
       DEV_SSL_CERTIFICATE_KEY: ${DEV_SSL_CERTIFICATE_KEY:-/etc/letsencrypt/live/dev.api.hftvn.com/privkey.pem}
       GLIMPSE_SSL_CERTIFICATE: ${GLIMPSE_SSL_CERTIFICATE:-/etc/ssl/cloudflare/glimpse-go.site/fullchain.pem}
       GLIMPSE_SSL_CERTIFICATE_KEY: ${GLIMPSE_SSL_CERTIFICATE_KEY:-/etc/ssl/cloudflare/glimpse-go.site/privkey.pem}
+      DEV_UPSTREAM: "${DEV_UPSTREAM:?Run ./deploy.sh deploy or set DEV_UPSTREAM in .env}"
       DEFAULT_UPSTREAM: "${DEFAULT_UPSTREAM:?Run ./deploy.sh deploy or set DEFAULT_UPSTREAM in .env}"
       DASHBOARD_UPSTREAM: "${DASHBOARD_UPSTREAM:?Run ./deploy.sh deploy or set DASHBOARD_UPSTREAM in .env}"
       AI_UPSTREAM: "${AI_UPSTREAM:?Run ./deploy.sh deploy or set AI_UPSTREAM in .env}"

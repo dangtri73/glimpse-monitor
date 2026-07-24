@@ -125,6 +125,7 @@ sync_macstudio_upstreams() {
   esac
 
   upsert_env MACSTUDIO_LAN_IP "$macstudio_lan_ip"
+  upsert_env DEV_UPSTREAM "${DEV_UPSTREAM:-http://host.docker.internal:5000}"
   upsert_env DEFAULT_UPSTREAM "${DEFAULT_UPSTREAM:-http://$macstudio_lan_ip:11435}"
   upsert_env DASHBOARD_UPSTREAM "${DASHBOARD_UPSTREAM:-http://$macstudio_lan_ip:3000}"
   upsert_env AI_UPSTREAM "${AI_UPSTREAM:-http://$macstudio_lan_ip:8771}"
@@ -143,6 +144,7 @@ validate_runtime_config() {
     AI_DOMAIN \
     OLLAMA_DOMAIN \
     MLX_DOMAIN \
+    DEV_UPSTREAM \
     DEFAULT_UPSTREAM \
     DASHBOARD_UPSTREAM \
     AI_UPSTREAM \

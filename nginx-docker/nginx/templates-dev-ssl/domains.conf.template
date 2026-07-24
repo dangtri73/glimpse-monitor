@@ -44,7 +44,7 @@ server {
     }
 
     location / {
-        proxy_pass ${DEFAULT_UPSTREAM};
+        proxy_pass ${DEV_UPSTREAM};
         include /etc/nginx/snippets/proxy-headers.conf;
     }
 }

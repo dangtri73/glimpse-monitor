@@ -110,6 +110,7 @@ dashboard.glimpse-go.site  -> http://<macstudio-lan-ip>:3000
 ai.glimpse-go.site         -> http://<macstudio-lan-ip>:8771
 ollama.glimpse-go.site     -> http://<macstudio-lan-ip>:11435
 mlx.glimpse-go.site        -> http://<macstudio-lan-ip>:8088
+dev.api.hftvn.com          -> http://host.docker.internal:5000
 ```
 
 Set these in `/Users/tri/nginx-docker/.env`:
@@ -120,9 +121,10 @@ DASHBOARD_DOMAIN=dashboard.glimpse-go.site
 AI_DOMAIN=ai.glimpse-go.site
 OLLAMA_DOMAIN=ollama.glimpse-go.site
 MLX_DOMAIN=mlx.glimpse-go.site
+DEV_UPSTREAM=http://host.docker.internal:5000
 ```
 
-Run `./deploy.sh deploy` after editing `MACSTUDIO_LAN_IP`; it derives `DASHBOARD_UPSTREAM`, `AI_UPSTREAM`, `OLLAMA_UPSTREAM`, and `MLX_UPSTREAM` from that value.
+Run `./deploy.sh deploy` after editing `MACSTUDIO_LAN_IP`; it derives `DASHBOARD_UPSTREAM`, `AI_UPSTREAM`, `OLLAMA_UPSTREAM`, and `MLX_UPSTREAM` from that value. `DEV_UPSTREAM` defaults to the dev Mac mini host through `host.docker.internal`.
 
 Set the same value in GitHub Actions repository variables:
 

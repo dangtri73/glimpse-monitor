@@ -111,6 +111,7 @@ jobs:
             -e OLLAMA_DOMAIN=ollama.glimpse-go.site \
             -e MLX_DOMAIN=mlx.glimpse-go.site \
             -e MACSTUDIO_LAN_IP=127.0.0.1 \
+            -e DEV_UPSTREAM=http://127.0.0.1:5000 \
             -e DEFAULT_UPSTREAM=http://127.0.0.1:11435 \
             -e DASHBOARD_UPSTREAM=http://127.0.0.1:3000 \
             -e AI_UPSTREAM=http://127.0.0.1:8771 \

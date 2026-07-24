@@ -110,7 +110,19 @@ docker pull nginx:1.27-alpine
 docker build --pull --platform linux/arm64 -t glimpse-nginx-test .
 docker run --rm \
   -e NGINX_TEMPLATE_MODE=http \
+  -e DEV_DOMAIN=dev.api.hftvn.com \
+  -e GLIMPSE_DOMAIN=glimpse-go.site \
+  -e GLIMPSE_WWW_DOMAIN=www.glimpse-go.site \
+  -e DASHBOARD_DOMAIN=dashboard.glimpse-go.site \
+  -e AI_DOMAIN=ai.glimpse-go.site \
+  -e OLLAMA_DOMAIN=ollama.glimpse-go.site \
+  -e MLX_DOMAIN=mlx.glimpse-go.site \
+  -e DEV_UPSTREAM=http://127.0.0.1:5000 \
   -e DEFAULT_UPSTREAM=http://127.0.0.1:11435 \
+  -e DASHBOARD_UPSTREAM=http://127.0.0.1:3000 \
+  -e AI_UPSTREAM=http://127.0.0.1:8771 \
+  -e OLLAMA_UPSTREAM=http://127.0.0.1:11435 \
+  -e MLX_UPSTREAM=http://127.0.0.1:8088 \
   glimpse-nginx-test nginx -t
 ```
 
