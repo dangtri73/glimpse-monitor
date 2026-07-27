@@ -51,7 +51,7 @@ server {
 
 server {
     listen 80;
-    server_name ${GLIMPSE_DOMAIN} ${GLIMPSE_WWW_DOMAIN} ${DASHBOARD_DOMAIN} ${AI_DOMAIN} ${OLLAMA_DOMAIN} ${MLX_DOMAIN};
+    server_name ${GLIMPSE_DOMAIN} ${GLIMPSE_WWW_DOMAIN} ${FRONT_DOMAIN} ${BACK_DOMAIN} ${EMBED_DOMAIN} ${RERANK_DOMAIN} ${MLX_DOMAIN};
 
     return 301 https://$host$request_uri;
 }
@@ -100,7 +100,7 @@ server {
 
 server {
     listen 443 ssl;
-    server_name ${DASHBOARD_DOMAIN};
+    server_name ${FRONT_DOMAIN};
 
     ssl_certificate ${GLIMPSE_SSL_CERTIFICATE};
     ssl_certificate_key ${GLIMPSE_SSL_CERTIFICATE_KEY};
@@ -114,14 +114,14 @@ server {
     }
 
     location / {
-        proxy_pass ${DASHBOARD_UPSTREAM};
+        proxy_pass ${FRONT_UPSTREAM};
         include /etc/nginx/snippets/proxy-headers.conf;
     }
 }
 
 server {
     listen 443 ssl;
-    server_name ${AI_DOMAIN};
+    server_name ${BACK_DOMAIN};
 
     ssl_certificate ${GLIMPSE_SSL_CERTIFICATE};
     ssl_certificate_key ${GLIMPSE_SSL_CERTIFICATE_KEY};
@@ -135,14 +135,14 @@ server {
     }
 
     location / {
-        proxy_pass ${AI_UPSTREAM};
+        proxy_pass ${BACK_UPSTREAM};
         include /etc/nginx/snippets/proxy-headers.conf;
     }
 }
 
 server {
     listen 443 ssl;
-    server_name ${OLLAMA_DOMAIN};
+    server_name ${EMBED_DOMAIN};
 
     ssl_certificate ${GLIMPSE_SSL_CERTIFICATE};
     ssl_certificate_key ${GLIMPSE_SSL_CERTIFICATE_KEY};
@@ -156,7 +156,28 @@ server {
     }
 
     location / {
-        proxy_pass ${OLLAMA_UPSTREAM};
+        proxy_pass ${EMBED_UPSTREAM};
+        include /etc/nginx/snippets/proxy-headers.conf;
+    }
+}
+
+server {
+    listen 443 ssl;
+    server_name ${RERANK_DOMAIN};
+
+    ssl_certificate ${GLIMPSE_SSL_CERTIFICATE};
+    ssl_certificate_key ${GLIMPSE_SSL_CERTIFICATE_KEY};
+    include /etc/nginx/snippets/ssl.conf;
+
+    client_max_body_size 25m;
+
+    location = /nginx-health {
+        access_log off;
+        return 200 "ok\n";
+    }
+
+    location / {
+        proxy_pass ${RERANK_UPSTREAM};
         include /etc/nginx/snippets/proxy-headers.conf;
     }
 }

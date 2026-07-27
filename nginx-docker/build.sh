@@ -130,9 +130,17 @@ trace_template_contract() {
     printf '  %-40s %s\n' "$mode" "$vars"
   done
 
-  if ! grep -Fq '${MLX_DOMAIN}' nginx/templates-ssl/domains.conf.template; then
-    fail "MLX_DOMAIN is not registered in nginx/templates-ssl/domains.conf.template"
-  fi
+  for var in FRONT_DOMAIN BACK_DOMAIN EMBED_DOMAIN RERANK_DOMAIN MLX_DOMAIN; do
+    if ! grep -Fq "\${$var}" nginx/templates-ssl/domains.conf.template; then
+      fail "$var is not registered in nginx/templates-ssl/domains.conf.template"
+    fi
+  done
+
+  for var in DASHBOARD_DOMAIN AI_DOMAIN OLLAMA_DOMAIN DASHBOARD_UPSTREAM AI_UPSTREAM OLLAMA_UPSTREAM; do
+    if grep -R -F "\${$var}" nginx/templates-http nginx/templates-dev-ssl nginx/templates-ssl >/dev/null 2>&1; then
+      fail "$var is still referenced by an nginx template"
+    fi
+  done
 
   log ""
   log "== Runtime Env Contract =="

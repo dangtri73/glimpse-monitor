@@ -46,7 +46,7 @@ server {
 
 server {
     listen 80;
-    server_name ${DASHBOARD_DOMAIN};
+    server_name ${FRONT_DOMAIN};
 
     client_max_body_size 25m;
 
@@ -56,14 +56,14 @@ server {
     }
 
     location / {
-        proxy_pass ${DASHBOARD_UPSTREAM};
+        proxy_pass ${FRONT_UPSTREAM};
         include /etc/nginx/snippets/proxy-headers.conf;
     }
 }
 
 server {
     listen 80;
-    server_name ${AI_DOMAIN};
+    server_name ${BACK_DOMAIN};
 
     client_max_body_size 25m;
 
@@ -73,14 +73,14 @@ server {
     }
 
     location / {
-        proxy_pass ${AI_UPSTREAM};
+        proxy_pass ${BACK_UPSTREAM};
         include /etc/nginx/snippets/proxy-headers.conf;
     }
 }
 
 server {
     listen 80;
-    server_name ${OLLAMA_DOMAIN};
+    server_name ${EMBED_DOMAIN};
 
     client_max_body_size 25m;
 
@@ -90,7 +90,24 @@ server {
     }
 
     location / {
-        proxy_pass ${OLLAMA_UPSTREAM};
+        proxy_pass ${EMBED_UPSTREAM};
+        include /etc/nginx/snippets/proxy-headers.conf;
+    }
+}
+
+server {
+    listen 80;
+    server_name ${RERANK_DOMAIN};
+
+    client_max_body_size 25m;
+
+    location = /nginx-health {
+        access_log off;
+        return 200 "ok\n";
+    }
+
+    location / {
+        proxy_pass ${RERANK_UPSTREAM};
         include /etc/nginx/snippets/proxy-headers.conf;
     }
 }
