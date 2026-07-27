@@ -12,40 +12,6 @@ server {
 
 server {
     listen 80;
-    server_name ${DEV_DOMAIN};
-
-    client_max_body_size 25m;
-
-    location = /nginx-health {
-        access_log off;
-        return 200 "ok\n";
-    }
-
-    location / {
-        proxy_pass ${DEV_UPSTREAM};
-        include /etc/nginx/snippets/proxy-headers.conf;
-    }
-}
-
-server {
-    listen 80;
-    server_name ${GLIMPSE_DOMAIN} ${GLIMPSE_WWW_DOMAIN};
-
-    client_max_body_size 25m;
-
-    location = /nginx-health {
-        access_log off;
-        return 200 "ok\n";
-    }
-
-    location / {
-        proxy_pass ${DEFAULT_UPSTREAM};
-        include /etc/nginx/snippets/proxy-headers.conf;
-    }
-}
-
-server {
-    listen 80;
     server_name ${FRONT_DOMAIN};
 
     client_max_body_size 25m;

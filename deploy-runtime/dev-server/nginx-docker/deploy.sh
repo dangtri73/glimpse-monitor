@@ -19,6 +19,7 @@ Examples:
   ./deploy.sh deploy
   ./deploy.sh certs list
   ./deploy.sh certs check cloudflare glimpse-go.site
+  ./deploy.sh certs check cloudflare hanwhafintech.com
 EOF
 }
 
@@ -118,6 +119,25 @@ env_value() {
   sed -n "s|^$key=||p" "$file" | tail -n 1
 }
 
+upsert_env_if_missing_or_legacy() {
+  key="$1"
+  value="$2"
+  shift 2
+
+  current="$(env_value "$key")"
+  if [ -z "$current" ]; then
+    upsert_env "$key" "$value"
+    return 0
+  fi
+
+  for legacy_value in "$@"; do
+    if [ "$current" = "$legacy_value" ]; then
+      upsert_env "$key" "$value"
+      return 0
+    fi
+  done
+}
+
 sync_macstudio_upstreams() {
   ensure_env
 
@@ -141,9 +161,36 @@ sync_macstudio_upstreams() {
   remove_env DASHBOARD_UPSTREAM
   remove_env AI_UPSTREAM
   remove_env OLLAMA_UPSTREAM
+  remove_env DEV_DOMAIN
+  remove_env DEV_UPSTREAM
+  remove_env DEFAULT_UPSTREAM
+  remove_env DEV_SSL_HOST_DIR
+  remove_env DEV_SSL_CERTIFICATE
+  remove_env DEV_SSL_CERTIFICATE_KEY
+  remove_env GLIMPSE_DOMAIN
+  remove_env GLIMPSE_WWW_DOMAIN
 
-  upsert_env DEV_UPSTREAM "${DEV_UPSTREAM:-http://host.docker.internal:5000}"
-  upsert_env DEFAULT_UPSTREAM "${DEFAULT_UPSTREAM:-http://$macstudio_lan_ip:11435}"
+  upsert_env_if_missing_or_legacy FRONT_DOMAIN "front.hanwhafintech.com" \
+    "front.glimpse-go.site"
+  upsert_env_if_missing_or_legacy BACK_DOMAIN "back.hanwhafintech.com" \
+    "back.glimpse-go.site"
+  upsert_env_if_missing_or_legacy EMBED_DOMAIN "embed.glimpse-go.site" \
+    "embed.hanwhafintech.com"
+  upsert_env_if_missing_or_legacy RERANK_DOMAIN "rerank.glimpse-go.site" \
+    "rerank.hanwhafintech.com"
+  upsert_env_if_missing_or_legacy MLX_DOMAIN "mlx.glimpse-go.site" \
+    "mlx.hanwhafintech.com"
+  upsert_env_if_missing_or_legacy NGINX_TEMPLATE_MODE "ssl" \
+    "dev-ssl"
+  upsert_env_if_missing_or_legacy HANWHA_SSL_CERTIFICATE "/etc/ssl/cloudflare/hanwhafintech.com/fullchain.pem"
+  upsert_env_if_missing_or_legacy HANWHA_SSL_CERTIFICATE_KEY "/etc/ssl/cloudflare/hanwhafintech.com/privkey.pem"
+  upsert_env_if_missing_or_legacy GLIMPSE_SSL_HOST_DIR "./certs/cloudflare" \
+    "./certs/cloudflare"
+  upsert_env_if_missing_or_legacy GLIMPSE_SSL_CERTIFICATE "/etc/ssl/cloudflare/glimpse-go.site/fullchain.pem" \
+    "/etc/ssl/cloudflare/hanwhafintech.com/fullchain.pem"
+  upsert_env_if_missing_or_legacy GLIMPSE_SSL_CERTIFICATE_KEY "/etc/ssl/cloudflare/glimpse-go.site/privkey.pem" \
+    "/etc/ssl/cloudflare/hanwhafintech.com/privkey.pem"
+
   upsert_env FRONT_UPSTREAM "${FRONT_UPSTREAM:-http://$macstudio_lan_ip:3000}"
   upsert_env BACK_UPSTREAM "${BACK_UPSTREAM:-http://$macstudio_lan_ip:4000}"
   upsert_env EMBED_UPSTREAM "${EMBED_UPSTREAM:-http://$macstudio_lan_ip:8089}"
@@ -155,16 +202,15 @@ validate_runtime_config() {
   config="$(compose config)"
 
   for key in \
-    DEV_DOMAIN \
-    GLIMPSE_DOMAIN \
-    GLIMPSE_WWW_DOMAIN \
     FRONT_DOMAIN \
     BACK_DOMAIN \
     EMBED_DOMAIN \
     RERANK_DOMAIN \
     MLX_DOMAIN \
-    DEV_UPSTREAM \
-    DEFAULT_UPSTREAM \
+    HANWHA_SSL_CERTIFICATE \
+    HANWHA_SSL_CERTIFICATE_KEY \
+    GLIMPSE_SSL_CERTIFICATE \
+    GLIMPSE_SSL_CERTIFICATE_KEY \
     FRONT_UPSTREAM \
     BACK_UPSTREAM \
     EMBED_UPSTREAM \

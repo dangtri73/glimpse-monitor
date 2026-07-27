@@ -4,8 +4,6 @@
 
 - `nginx-docker/nginx/templates-http/domains.conf.template`
   - HTTP-only mode. Every public domain route needs a `listen 80` server block.
-- `nginx-docker/nginx/templates-dev-ssl/domains.conf.template`
-  - `DEV_DOMAIN` has HTTPS. `glimpse-go.site` subdomains are HTTP-only.
 - `nginx-docker/nginx/templates-ssl/domains.conf.template`
   - Full HTTPS mode. Add subdomains to the port 80 redirect `server_name` list and add a matching `listen 443 ssl` server block.
 
@@ -34,10 +32,36 @@
 ## Current Public Routes
 
 ```txt
-front.glimpse-go.site  -> http://${MACSTUDIO_LAN_IP}:3000
-back.glimpse-go.site   -> http://${MACSTUDIO_LAN_IP}:4000
-embed.glimpse-go.site  -> http://${MACSTUDIO_LAN_IP}:8089
-rerank.glimpse-go.site -> http://${MACSTUDIO_LAN_IP}:8090
-mlx.glimpse-go.site    -> http://${MACSTUDIO_LAN_IP}:8088
-dev.api.hftvn.com      -> http://host.docker.internal:5000
+front.hanwhafintech.com  -> http://${MACSTUDIO_LAN_IP}:3000
+back.hanwhafintech.com   -> http://${MACSTUDIO_LAN_IP}:4000
+embed.glimpse-go.site    -> http://${MACSTUDIO_LAN_IP}:8089
+rerank.glimpse-go.site   -> http://${MACSTUDIO_LAN_IP}:8090
+mlx.glimpse-go.site      -> http://${MACSTUDIO_LAN_IP}:8088
 ```
+
+## Current HTTPS Certificate
+
+Use two Cloudflare Origin Certificate directories:
+
+```txt
+certs/cloudflare/glimpse-go.site/fullchain.pem
+certs/cloudflare/glimpse-go.site/privkey.pem
+certs/cloudflare/hanwhafintech.com/fullchain.pem
+certs/cloudflare/hanwhafintech.com/privkey.pem
+```
+
+The glimpse certificate must include:
+
+```txt
+glimpse-go.site
+*.glimpse-go.site
+```
+
+The hanwha certificate must include:
+
+```txt
+hanwhafintech.com
+*.hanwhafintech.com
+```
+
+`*.hanwhafintech.com` covers one-label hosts such as `front.hanwhafintech.com`. It does not cover two-label hosts such as `api.dev.hanwhafintech.com`.

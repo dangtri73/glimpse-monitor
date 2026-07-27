@@ -13,11 +13,20 @@ The expected file layout is:
 
 ```txt
 nginx-docker/certs/
-  letsencrypt/live/dev.api.hftvn.com/fullchain.pem
-  letsencrypt/live/dev.api.hftvn.com/privkey.pem
   cloudflare/glimpse-go.site/fullchain.pem
   cloudflare/glimpse-go.site/privkey.pem
+  cloudflare/hanwhafintech.com/fullchain.pem
+  cloudflare/hanwhafintech.com/privkey.pem
 ```
+
+The current gateway uses two Cloudflare Origin Certificate directories:
+
+```txt
+glimpse-go.site       -> glimpse-go.site, *.glimpse-go.site
+hanwhafintech.com     -> hanwhafintech.com, *.hanwhafintech.com
+```
+
+`glimpse-go.site` remains the existing embed/rerank/mlx domain group. `hanwhafintech.com` is added for `front` and `back`.
 
 CI/CD pulls and restarts `dangtri73/glimpse-nginx:latest` without touching certs. The cert files remain on the dev server.
 
@@ -77,8 +86,8 @@ List installed certs:
 Validate an installed cert/key pair:
 
 ```bash
-./scripts/certs.sh check letsencrypt dev.api.hftvn.com
 ./scripts/certs.sh check cloudflare glimpse-go.site
+./scripts/certs.sh check cloudflare hanwhafintech.com
 ```
 
 Reload Nginx after certificate changes:
@@ -91,16 +100,38 @@ Reload Nginx after certificate changes:
 
 ## Add Or Update Cloudflare Origin Certificate
 
-Create or renew the Cloudflare Origin Certificate in Cloudflare for:
+Create or renew the Cloudflare Origin Certificate in Cloudflare for each zone group.
+
+For `hanwhafintech.com`, include:
+
+```txt
+hanwhafintech.com
+*.hanwhafintech.com
+```
+
+For `glimpse-go.site`, keep or renew the existing certificate with:
 
 ```txt
 glimpse-go.site
 *.glimpse-go.site
 ```
 
+In Cloudflare:
+
+1. Open the matching zone, either `hanwhafintech.com` or `glimpse-go.site`.
+2. Go to `SSL/TLS` -> `Origin Server` -> `Create Certificate`.
+3. Let Cloudflare generate the private key and CSR.
+4. Add the hostnames above exactly.
+5. Choose a long validity period for the origin certificate.
+6. Create the certificate, then copy both the Origin Certificate and Private Key.
+
+Use a separate certificate or add another SAN only if the hostname is deeper than one wildcard level. For example, `api.dev.hanwhafintech.com` needs `*.dev.hanwhafintech.com`; it is not covered by `*.hanwhafintech.com`.
+
 Save the new cert and key temporarily on the dev server, for example:
 
 ```txt
+/tmp/hanwhafintech.com.fullchain.pem
+/tmp/hanwhafintech.com.privkey.pem
 /tmp/glimpse-go.site.fullchain.pem
 /tmp/glimpse-go.site.privkey.pem
 ```
@@ -109,6 +140,11 @@ Install or update:
 
 ```bash
 cd /Users/tri/nginx-docker
+./scripts/certs.sh install cloudflare hanwhafintech.com \
+  /tmp/hanwhafintech.com.fullchain.pem \
+  /tmp/hanwhafintech.com.privkey.pem
+./scripts/certs.sh check cloudflare hanwhafintech.com
+
 ./scripts/certs.sh install cloudflare glimpse-go.site \
   /tmp/glimpse-go.site.fullchain.pem \
   /tmp/glimpse-go.site.privkey.pem
@@ -119,17 +155,44 @@ cd /Users/tri/nginx-docker
 The script validates that the certificate and private key match. If a cert already exists, it is backed up under:
 
 ```txt
+nginx-docker/certs/backups/cloudflare/hanwhafintech.com/<timestamp>/
 nginx-docker/certs/backups/cloudflare/glimpse-go.site/<timestamp>/
 ```
 
-## Add Or Update Let's Encrypt Certificate Copy
+After the origin certificate is installed, use these Cloudflare settings:
+
+```txt
+SSL/TLS encryption mode: Full (strict)
+DNS proxy status: Proxied
+```
+
+Required DNS records point to the dev server public IP.
+
+In the `hanwhafintech.com` zone:
+
+```txt
+A    front      <dev-server-public-ip>
+A    back       <dev-server-public-ip>
+```
+
+In the `glimpse-go.site` zone:
+
+```txt
+A    embed      <dev-server-public-ip>
+A    rerank     <dev-server-public-ip>
+A    mlx        <dev-server-public-ip>
+```
+
+## Optional Let's Encrypt Certificate Copy
+
+This is not required for the current Cloudflare Origin Certificate setup. Use it only if you intentionally point an env var back to `/etc/letsencrypt/live/<domain>/...`.
 
 If the host already has a Let's Encrypt certificate under `/etc/letsencrypt/live/<domain>`, copy it into the Docker-readable cert store:
 
 ```bash
 cd /Users/tri/nginx-docker
-./scripts/certs.sh sync-letsencrypt dev.api.hftvn.com
-./scripts/certs.sh check letsencrypt dev.api.hftvn.com
+./scripts/certs.sh sync-letsencrypt example.com
+./scripts/certs.sh check letsencrypt example.com
 ./scripts/certs.sh reload
 ```
 
@@ -156,9 +219,8 @@ nginx-docker/certs/backups/<store>/<domain>/<timestamp>/
 Current `.env` values:
 
 ```env
-DEV_SSL_HOST_DIR=./certs/letsencrypt
-DEV_SSL_CERTIFICATE=/etc/letsencrypt/live/dev.api.hftvn.com/fullchain.pem
-DEV_SSL_CERTIFICATE_KEY=/etc/letsencrypt/live/dev.api.hftvn.com/privkey.pem
+HANWHA_SSL_CERTIFICATE=/etc/ssl/cloudflare/hanwhafintech.com/fullchain.pem
+HANWHA_SSL_CERTIFICATE_KEY=/etc/ssl/cloudflare/hanwhafintech.com/privkey.pem
 
 GLIMPSE_SSL_HOST_DIR=./certs/cloudflare
 GLIMPSE_SSL_CERTIFICATE=/etc/ssl/cloudflare/glimpse-go.site/fullchain.pem

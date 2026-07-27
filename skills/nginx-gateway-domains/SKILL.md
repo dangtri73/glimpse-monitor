@@ -13,9 +13,8 @@ Read `references/domain-files.md` when changing routes. It lists every file that
 
 For each route change:
 
-1. Update all three nginx templates:
+1. Update both nginx templates:
    - `nginx-docker/nginx/templates-http/domains.conf.template`
-   - `nginx-docker/nginx/templates-dev-ssl/domains.conf.template`
    - `nginx-docker/nginx/templates-ssl/domains.conf.template`
 2. Update dev-server runtime config:
    - `deploy-runtime/dev-server/nginx-docker/.env.example`
@@ -36,7 +35,7 @@ For each route change:
 Use explicit variables per public service:
 
 ```env
-FRONT_DOMAIN=front.glimpse-go.site
+FRONT_DOMAIN=front.hanwhafintech.com
 FRONT_UPSTREAM=http://${MACSTUDIO_LAN_IP}:3000
 ```
 
@@ -54,14 +53,16 @@ Use `mlx-stream-proxy.conf` only for the existing MLX streaming route unless the
 
 ## HTTPS Modes
 
-`NGINX_TEMPLATE_MODE=dev-ssl` means only `DEV_DOMAIN` uses HTTPS; `glimpse-go.site` subdomains are HTTP-only.
-
-Use `NGINX_TEMPLATE_MODE=ssl` when public `*.glimpse-go.site` subdomains must work over HTTPS through Cloudflare. The dev server runtime must have:
+Use `NGINX_TEMPLATE_MODE=ssl` when public domains must work over HTTPS through Cloudflare. The current runtime uses two Cloudflare cert directories:
 
 ```txt
 certs/cloudflare/glimpse-go.site/fullchain.pem
 certs/cloudflare/glimpse-go.site/privkey.pem
+certs/cloudflare/hanwhafintech.com/fullchain.pem
+certs/cloudflare/hanwhafintech.com/privkey.pem
 ```
+
+Use `GLIMPSE_SSL_CERTIFICATE` for `glimpse-go.site` routes. Use `HANWHA_SSL_CERTIFICATE` for one-label `hanwhafintech.com` subdomains such as `front` and `back`.
 
 Cloudflare should normally use `Full (strict)` once the origin certificate is installed.
 
@@ -89,11 +90,11 @@ cd /Users/tri/nginx-docker
 Deploy remotely through SSH:
 
 ```bash
-DEV_NGINX_HOST=tri@dev.hftvn.com scripts/nginx-gateway-release.sh deploy-remote
+DEV_NGINX_HOST=tri@hanwhafintech.com scripts/nginx-gateway-release.sh deploy-remote
 ```
 
 Build, push, and deploy remotely:
 
 ```bash
-DEV_NGINX_HOST=tri@dev.hftvn.com scripts/nginx-gateway-release.sh all-remote
+DEV_NGINX_HOST=tri@hanwhafintech.com scripts/nginx-gateway-release.sh all-remote
 ```

@@ -15,31 +15,23 @@ services:
       - "${HTTP_PORT:-80}:80"
       - "${HTTPS_PORT:-443}:443"
     environment:
-      DEV_DOMAIN: ${DEV_DOMAIN:-dev.api.hftvn.com}
-      GLIMPSE_DOMAIN: ${GLIMPSE_DOMAIN:-glimpse-go.site}
-      GLIMPSE_WWW_DOMAIN: ${GLIMPSE_WWW_DOMAIN:-www.glimpse-go.site}
-      FRONT_DOMAIN: ${FRONT_DOMAIN:-front.glimpse-go.site}
-      BACK_DOMAIN: ${BACK_DOMAIN:-back.glimpse-go.site}
+      FRONT_DOMAIN: ${FRONT_DOMAIN:-front.hanwhafintech.com}
+      BACK_DOMAIN: ${BACK_DOMAIN:-back.hanwhafintech.com}
       EMBED_DOMAIN: ${EMBED_DOMAIN:-embed.glimpse-go.site}
       RERANK_DOMAIN: ${RERANK_DOMAIN:-rerank.glimpse-go.site}
       MLX_DOMAIN: ${MLX_DOMAIN:-mlx.glimpse-go.site}
       MACSTUDIO_LAN_IP: "${MACSTUDIO_LAN_IP:?Set MACSTUDIO_LAN_IP in .env}"
-      DEV_SSL_CERTIFICATE: ${DEV_SSL_CERTIFICATE:-/etc/letsencrypt/live/dev.api.hftvn.com/fullchain.pem}
-      DEV_SSL_CERTIFICATE_KEY: ${DEV_SSL_CERTIFICATE_KEY:-/etc/letsencrypt/live/dev.api.hftvn.com/privkey.pem}
+      HANWHA_SSL_CERTIFICATE: ${HANWHA_SSL_CERTIFICATE:-/etc/ssl/cloudflare/hanwhafintech.com/fullchain.pem}
+      HANWHA_SSL_CERTIFICATE_KEY: ${HANWHA_SSL_CERTIFICATE_KEY:-/etc/ssl/cloudflare/hanwhafintech.com/privkey.pem}
       GLIMPSE_SSL_CERTIFICATE: ${GLIMPSE_SSL_CERTIFICATE:-/etc/ssl/cloudflare/glimpse-go.site/fullchain.pem}
       GLIMPSE_SSL_CERTIFICATE_KEY: ${GLIMPSE_SSL_CERTIFICATE_KEY:-/etc/ssl/cloudflare/glimpse-go.site/privkey.pem}
-      DEV_UPSTREAM: "${DEV_UPSTREAM:?Run ./deploy.sh deploy or set DEV_UPSTREAM in .env}"
-      DEFAULT_UPSTREAM: "${DEFAULT_UPSTREAM:?Run ./deploy.sh deploy or set DEFAULT_UPSTREAM in .env}"
       FRONT_UPSTREAM: "${FRONT_UPSTREAM:?Run ./deploy.sh deploy or set FRONT_UPSTREAM in .env}"
       BACK_UPSTREAM: "${BACK_UPSTREAM:?Run ./deploy.sh deploy or set BACK_UPSTREAM in .env}"
       EMBED_UPSTREAM: "${EMBED_UPSTREAM:?Run ./deploy.sh deploy or set EMBED_UPSTREAM in .env}"
       RERANK_UPSTREAM: "${RERANK_UPSTREAM:?Run ./deploy.sh deploy or set RERANK_UPSTREAM in .env}"
       MLX_UPSTREAM: "${MLX_UPSTREAM:?Run ./deploy.sh deploy or set MLX_UPSTREAM in .env}"
-      NGINX_TEMPLATE_MODE: ${NGINX_TEMPLATE_MODE:-dev-ssl}
-    extra_hosts:
-      - "host.docker.internal:host-gateway"
+      NGINX_TEMPLATE_MODE: ${NGINX_TEMPLATE_MODE:-ssl}
     volumes:
       - ./nginx/generated:/etc/nginx/generated:ro
-      - ${DEV_SSL_HOST_DIR:-./certs/letsencrypt}:/etc/letsencrypt:ro
       - ${GLIMPSE_SSL_HOST_DIR:-./certs/cloudflare}:/etc/ssl/cloudflare:ro
     logging: *default-logging

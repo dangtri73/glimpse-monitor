@@ -230,16 +230,11 @@ MACSTUDIO_LAN_IP=<macstudio-lan-ip>
 Example public routes:
 
 ```txt
-https://front.glimpse-go.site     -> http://${MACSTUDIO_LAN_IP}:3000
-https://back.glimpse-go.site      -> http://${MACSTUDIO_LAN_IP}:4000
-https://embed.glimpse-go.site     -> http://${MACSTUDIO_LAN_IP}:8089
-https://rerank.glimpse-go.site    -> http://${MACSTUDIO_LAN_IP}:8090
-```
-
-If `OLLAMA_BASE_URL=https://dev.api.hftvn.com/ai`, the AI service calls:
-
-```txt
-POST https://dev.api.hftvn.com/ai/api/chat
+https://front.hanwhafintech.com     -> http://${MACSTUDIO_LAN_IP}:3000
+https://back.hanwhafintech.com      -> http://${MACSTUDIO_LAN_IP}:4000
+https://embed.glimpse-go.site       -> http://${MACSTUDIO_LAN_IP}:8089
+https://rerank.glimpse-go.site      -> http://${MACSTUDIO_LAN_IP}:8090
+https://mlx.glimpse-go.site         -> http://${MACSTUDIO_LAN_IP}:8088
 ```
 
 ## GitHub Actions Plan

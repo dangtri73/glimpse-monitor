@@ -201,7 +201,7 @@ Recommended event fields:
   "requestId": "req_...",
   "traceId": "trace_...",
   "method": "POST",
-  "host": "dev.api.hftvn.com",
+  "host": "back.hanwhafintech.com",
   "path": "/api/chat/messages",
   "routeTemplate": "/api/chat/messages",
   "queryShape": "redacted",

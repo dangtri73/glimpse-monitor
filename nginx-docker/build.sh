@@ -83,7 +83,6 @@ template_dir_for_mode() {
 
   case "$mode" in
     http) printf '%s\n' "nginx/templates-http" ;;
-    dev-ssl) printf '%s\n' "nginx/templates-dev-ssl" ;;
     ssl) printf '%s\n' "nginx/templates-ssl" ;;
     *) return 1 ;;
   esac
@@ -101,7 +100,6 @@ trace_build_context() {
   require_file Dockerfile
   require_file docker-entrypoint.d/05-select-template-mode.sh
   require_dir nginx/templates-http
-  require_dir nginx/templates-dev-ssl
   require_dir nginx/templates-ssl
   require_dir nginx/snippets
   require_file nginx/snippets/ssl.conf
@@ -114,7 +112,6 @@ trace_dockerfile_contract() {
   log "== Dockerfile Contract =="
   require_dockerfile_copy docker-entrypoint.d/05-select-template-mode.sh
   require_dockerfile_copy nginx/templates-http
-  require_dockerfile_copy nginx/templates-dev-ssl
   require_dockerfile_copy nginx/templates-ssl
   require_dockerfile_copy nginx/snippets
 }
@@ -123,7 +120,7 @@ trace_template_contract() {
   log ""
   log "== Runtime Template Modes =="
 
-  for mode in http dev-ssl ssl; do
+  for mode in http ssl; do
     dir="$(template_dir_for_mode "$mode")"
     require_file "$dir/domains.conf.template"
     vars="$(template_vars "$dir")"
@@ -136,15 +133,15 @@ trace_template_contract() {
     fi
   done
 
-  for var in DASHBOARD_DOMAIN AI_DOMAIN OLLAMA_DOMAIN DASHBOARD_UPSTREAM AI_UPSTREAM OLLAMA_UPSTREAM; do
-    if grep -R -F "\${$var}" nginx/templates-http nginx/templates-dev-ssl nginx/templates-ssl >/dev/null 2>&1; then
+  for var in DASHBOARD_DOMAIN AI_DOMAIN OLLAMA_DOMAIN DASHBOARD_UPSTREAM AI_UPSTREAM OLLAMA_UPSTREAM DEV_DOMAIN DEV_UPSTREAM DEFAULT_UPSTREAM DEV_SSL_CERTIFICATE DEV_SSL_CERTIFICATE_KEY GLIMPSE_DOMAIN GLIMPSE_WWW_DOMAIN; do
+    if grep -R -F "\${$var}" nginx/templates-http nginx/templates-ssl >/dev/null 2>&1; then
       fail "$var is still referenced by an nginx template"
     fi
   done
 
   log ""
   log "== Runtime Env Contract =="
-  template_vars nginx/templates-http nginx/templates-dev-ssl nginx/templates-ssl 2>/dev/null || true
+  template_vars nginx/templates-http nginx/templates-ssl 2>/dev/null || true
   log ""
   log "Runtime values are supplied by ../deploy-runtime/dev-server/nginx-docker/.env and docker-compose.yml."
 }

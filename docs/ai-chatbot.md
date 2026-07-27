@@ -52,12 +52,7 @@ OLLAMA_BASE_URL=http://host.docker.internal:11434
 OLLAMA_MODEL=gemma3:270m
 ```
 
-If Ollama is exposed through your dev gateway, set:
-
-```env
-OLLAMA_BASE_URL=https://dev.api.hftvn.com/ai
-OLLAMA_MODEL=gemma3
-```
+The dev gateway no longer exposes a default public Ollama/API route. Use `http://host.docker.internal:11434` from Docker on Mac Studio, or an SSH tunnel for private remote testing.
 
 The service calls:
 

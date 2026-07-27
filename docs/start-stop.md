@@ -38,12 +38,7 @@ OLLAMA_BASE_URL=http://host.docker.internal:11434
 OLLAMA_MODEL=gemma3:270m
 ```
 
-If Ollama is exposed through the dev gateway, set this in `glimpse-monitor/infra/.env`:
-
-```env
-OLLAMA_BASE_URL=https://dev.api.hftvn.com/ai
-OLLAMA_MODEL=gemma3
-```
+The dev gateway no longer exposes a default public Ollama/API route. Use `http://host.docker.internal:11434` from Docker on Mac Studio, or an SSH tunnel for private remote testing.
 
 ### 3. Start Infrastructure
 
@@ -418,7 +413,7 @@ The infra ports bind to `127.0.0.1`, so they are private to the Mac Studio host.
 From a local machine, use SSH tunnels through the dev gateway. Example for Postgres:
 
 ```bash
-ssh -J tri@dev.hftvn.com -L 5433:127.0.0.1:5433 admin@<macstudio-lan-ip>
+ssh -J tri@hanwhafintech.com -L 5433:127.0.0.1:5433 admin@<macstudio-lan-ip>
 ```
 
 Then connect locally to:

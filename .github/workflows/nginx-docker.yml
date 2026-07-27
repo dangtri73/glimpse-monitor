@@ -103,17 +103,16 @@ jobs:
           docker build --pull --platform "$DOCKER_PLATFORM" -t "$IMAGE" .
           docker run --rm \
             -e NGINX_TEMPLATE_MODE=http \
-            -e DEV_DOMAIN=dev.api.hftvn.com \
-            -e GLIMPSE_DOMAIN=glimpse-go.site \
-            -e GLIMPSE_WWW_DOMAIN=www.glimpse-go.site \
-            -e FRONT_DOMAIN=front.glimpse-go.site \
-            -e BACK_DOMAIN=back.glimpse-go.site \
+            -e FRONT_DOMAIN=front.hanwhafintech.com \
+            -e BACK_DOMAIN=back.hanwhafintech.com \
             -e EMBED_DOMAIN=embed.glimpse-go.site \
             -e RERANK_DOMAIN=rerank.glimpse-go.site \
             -e MLX_DOMAIN=mlx.glimpse-go.site \
+            -e HANWHA_SSL_CERTIFICATE=/etc/ssl/cloudflare/hanwhafintech.com/fullchain.pem \
+            -e HANWHA_SSL_CERTIFICATE_KEY=/etc/ssl/cloudflare/hanwhafintech.com/privkey.pem \
+            -e GLIMPSE_SSL_CERTIFICATE=/etc/ssl/cloudflare/glimpse-go.site/fullchain.pem \
+            -e GLIMPSE_SSL_CERTIFICATE_KEY=/etc/ssl/cloudflare/glimpse-go.site/privkey.pem \
             -e MACSTUDIO_LAN_IP=127.0.0.1 \
-            -e DEV_UPSTREAM=http://127.0.0.1:5000 \
-            -e DEFAULT_UPSTREAM=http://127.0.0.1:11435 \
             -e FRONT_UPSTREAM=http://127.0.0.1:3000 \
             -e BACK_UPSTREAM=http://127.0.0.1:4000 \
             -e EMBED_UPSTREAM=http://127.0.0.1:8089 \

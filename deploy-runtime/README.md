@@ -34,6 +34,7 @@ Useful commands:
 ```sh
 ./deploy.sh certs list
 ./deploy.sh certs check cloudflare glimpse-go.site
+./deploy.sh certs check cloudflare hanwhafintech.com
 ./deploy.sh test
 ./deploy.sh reload
 ./deploy.sh logs
@@ -106,27 +107,41 @@ Rebuild the tarot vector collection after deploying an AI image that includes th
 The dev server Nginx gateway should expose only HTTP services:
 
 ```txt
-front.glimpse-go.site      -> http://<macstudio-lan-ip>:3000
-back.glimpse-go.site       -> http://<macstudio-lan-ip>:4000
-embed.glimpse-go.site      -> http://<macstudio-lan-ip>:8089
-rerank.glimpse-go.site     -> http://<macstudio-lan-ip>:8090
-mlx.glimpse-go.site        -> http://<macstudio-lan-ip>:8088
-dev.api.hftvn.com          -> http://host.docker.internal:5000
+front.hanwhafintech.com      -> http://<macstudio-lan-ip>:3000
+back.hanwhafintech.com       -> http://<macstudio-lan-ip>:4000
+embed.glimpse-go.site        -> http://<macstudio-lan-ip>:8089
+rerank.glimpse-go.site       -> http://<macstudio-lan-ip>:8090
+mlx.glimpse-go.site          -> http://<macstudio-lan-ip>:8088
 ```
 
 Set these in `/Users/tri/nginx-docker/.env`:
 
 ```env
 MACSTUDIO_LAN_IP=<macstudio-lan-ip>
-FRONT_DOMAIN=front.glimpse-go.site
-BACK_DOMAIN=back.glimpse-go.site
+NGINX_TEMPLATE_MODE=ssl
+FRONT_DOMAIN=front.hanwhafintech.com
+BACK_DOMAIN=back.hanwhafintech.com
 EMBED_DOMAIN=embed.glimpse-go.site
 RERANK_DOMAIN=rerank.glimpse-go.site
 MLX_DOMAIN=mlx.glimpse-go.site
-DEV_UPSTREAM=http://host.docker.internal:5000
+HANWHA_SSL_CERTIFICATE=/etc/ssl/cloudflare/hanwhafintech.com/fullchain.pem
+HANWHA_SSL_CERTIFICATE_KEY=/etc/ssl/cloudflare/hanwhafintech.com/privkey.pem
+GLIMPSE_SSL_CERTIFICATE=/etc/ssl/cloudflare/glimpse-go.site/fullchain.pem
+GLIMPSE_SSL_CERTIFICATE_KEY=/etc/ssl/cloudflare/glimpse-go.site/privkey.pem
 ```
 
-Run `./deploy.sh deploy` after editing `MACSTUDIO_LAN_IP`; it derives `FRONT_UPSTREAM`, `BACK_UPSTREAM`, `EMBED_UPSTREAM`, `RERANK_UPSTREAM`, and `MLX_UPSTREAM` from that value. `DEV_UPSTREAM` defaults to the dev Mac mini host through `host.docker.internal`.
+Run `./deploy.sh deploy` after editing `MACSTUDIO_LAN_IP`; it derives `FRONT_UPSTREAM`, `BACK_UPSTREAM`, `EMBED_UPSTREAM`, `RERANK_UPSTREAM`, and `MLX_UPSTREAM` from that value.
+
+Install Cloudflare Origin Certificates on the dev server for both zone groups:
+
+```txt
+hanwhafintech.com
+*.hanwhafintech.com
+glimpse-go.site
+*.glimpse-go.site
+```
+
+The hanwha wildcard covers `front.hanwhafintech.com` and `back.hanwhafintech.com`. The glimpse wildcard keeps `embed.glimpse-go.site`, `rerank.glimpse-go.site`, and `mlx.glimpse-go.site` working.
 
 Set the same value in GitHub Actions repository variables:
 
@@ -134,11 +149,18 @@ Set the same value in GitHub Actions repository variables:
 MACSTUDIO_LAN_IP=<macstudio-lan-ip>
 ```
 
-Add Cloudflare DNS records pointing to the dev server public IP:
+Add Cloudflare DNS records pointing to the dev server public IP.
+
+In the `hanwhafintech.com` zone:
 
 ```txt
 A    front      <dev-server-public-ip>
 A    back       <dev-server-public-ip>
+```
+
+In the `glimpse-go.site` zone:
+
+```txt
 A    embed      <dev-server-public-ip>
 A    rerank     <dev-server-public-ip>
 A    mlx        <dev-server-public-ip>
@@ -172,10 +194,10 @@ ssh -L 8082:127.0.0.1:8082 admin@<macstudio-lan-ip>
 From outside the LAN, use the dev server as the jump host:
 
 ```sh
-ssh -J tri@dev.hftvn.com -L 8123:127.0.0.1:8123 admin@<macstudio-lan-ip>
-ssh -J tri@dev.hftvn.com -L 9000:127.0.0.1:9000 admin@<macstudio-lan-ip>
-ssh -J tri@dev.hftvn.com -L 5433:127.0.0.1:5433 admin@<macstudio-lan-ip>
-ssh -J tri@dev.hftvn.com -L 8082:127.0.0.1:8082 admin@<macstudio-lan-ip>
+ssh -J tri@hanwhafintech.com -L 8123:127.0.0.1:8123 admin@<macstudio-lan-ip>
+ssh -J tri@hanwhafintech.com -L 9000:127.0.0.1:9000 admin@<macstudio-lan-ip>
+ssh -J tri@hanwhafintech.com -L 5433:127.0.0.1:5433 admin@<macstudio-lan-ip>
+ssh -J tri@hanwhafintech.com -L 8082:127.0.0.1:8082 admin@<macstudio-lan-ip>
 ```
 
 DBeaver ClickHouse over HTTP:

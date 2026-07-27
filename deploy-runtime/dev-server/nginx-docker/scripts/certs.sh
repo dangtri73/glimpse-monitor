@@ -14,9 +14,9 @@ Usage:
   ./scripts/certs.sh reload
 
 Examples:
-  ./scripts/certs.sh install cloudflare glimpse-go.site /tmp/fullchain.pem /tmp/privkey.pem
-  ./scripts/certs.sh sync-letsencrypt dev.api.hftvn.com
+  ./scripts/certs.sh install cloudflare hanwhafintech.com /tmp/fullchain.pem /tmp/privkey.pem
   ./scripts/certs.sh check cloudflare glimpse-go.site
+  ./scripts/certs.sh check cloudflare hanwhafintech.com
   ./scripts/certs.sh remove cloudflare old.example.com
   ./scripts/certs.sh reload
 

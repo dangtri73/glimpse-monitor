@@ -17,7 +17,7 @@ Usage:
 Environment:
   DOCKER_PLATFORM        Default: linux/arm64
   NGINX_IMAGE            Default: dangtri73/glimpse-nginx:latest
-  DEV_NGINX_HOST         Required for deploy-remote/all-remote, e.g. tri@dev.hftvn.com
+  DEV_NGINX_HOST         Required for deploy-remote/all-remote, e.g. tri@hanwhafintech.com
   DEV_NGINX_DOCKER_DIR   Default: /Users/tri/nginx-docker
 EOF
 }
@@ -84,7 +84,7 @@ deploy_local() {
 
 deploy_remote() {
   if [ -z "${DEV_NGINX_HOST:-}" ]; then
-    echo "ERROR: DEV_NGINX_HOST is required, e.g. DEV_NGINX_HOST=tri@dev.hftvn.com" >&2
+    echo "ERROR: DEV_NGINX_HOST is required, e.g. DEV_NGINX_HOST=tri@hanwhafintech.com" >&2
     exit 1
   fi
 
@@ -104,7 +104,7 @@ cd $REMOTE_DIR
 ./deploy.sh deploy
 
 # Or deploy remotely from this repo
-DEV_NGINX_HOST=tri@dev.hftvn.com scripts/nginx-gateway-release.sh deploy-remote
+DEV_NGINX_HOST=tri@hanwhafintech.com scripts/nginx-gateway-release.sh deploy-remote
 EOF
 }
 

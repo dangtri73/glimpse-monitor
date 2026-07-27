@@ -15,12 +15,11 @@ The dev server owns public ports `80` and `443`. Application services stay on Ma
 Use this gateway for HTTP services only:
 
 ```txt
-front.glimpse-go.site      -> http://<macstudio-lan-ip>:3000
-back.glimpse-go.site       -> http://<macstudio-lan-ip>:4000
-embed.glimpse-go.site      -> http://<macstudio-lan-ip>:8089
-rerank.glimpse-go.site     -> http://<macstudio-lan-ip>:8090
-mlx.glimpse-go.site        -> http://<macstudio-lan-ip>:8088
-dev.api.hftvn.com          -> http://host.docker.internal:5000
+front.hanwhafintech.com      -> http://<macstudio-lan-ip>:3000
+back.hanwhafintech.com       -> http://<macstudio-lan-ip>:4000
+embed.glimpse-go.site        -> http://<macstudio-lan-ip>:8089
+rerank.glimpse-go.site       -> http://<macstudio-lan-ip>:8090
+mlx.glimpse-go.site          -> http://<macstudio-lan-ip>:8088
 ```
 
 Do not route Postgres, Kafka, ClickHouse, Redis, Qdrant, Prometheus, Grafana, Adminer, or Kafka UI through public Nginx. Use SSH tunnels for those private ports.
@@ -28,17 +27,17 @@ Do not route Postgres, Kafka, ClickHouse, Redis, Qdrant, Prometheus, Grafana, Ad
 ## Current Domains
 
 ```txt
-dev.api.hftvn.com
-glimpse-go.site
-www.glimpse-go.site
+front.hanwhafintech.com
+back.hanwhafintech.com
+embed.glimpse-go.site
+rerank.glimpse-go.site
+mlx.glimpse-go.site
 ```
 
-The default upstream is:
+The Mac Studio upstreams are:
 
 ```env
 MACSTUDIO_LAN_IP=<macstudio-lan-ip>
-DEV_UPSTREAM=http://host.docker.internal:5000
-DEFAULT_UPSTREAM=http://${MACSTUDIO_LAN_IP}:11435
 FRONT_UPSTREAM=http://${MACSTUDIO_LAN_IP}:3000
 BACK_UPSTREAM=http://${MACSTUDIO_LAN_IP}:4000
 EMBED_UPSTREAM=http://${MACSTUDIO_LAN_IP}:8089
@@ -62,21 +61,31 @@ The examples below assume the current dev-server runtime directory:
 
 ## Template Modes
 
-`nginx-docker` has three template modes:
+`nginx-docker` has two template modes:
 
 ```env
 NGINX_TEMPLATE_MODE=http       # HTTP only, no certs required
-NGINX_TEMPLATE_MODE=dev-ssl    # dev.api HTTPS, glimpse HTTP
-NGINX_TEMPLATE_MODE=ssl        # HTTPS for both domains
+NGINX_TEMPLATE_MODE=ssl        # HTTPS for all configured public service domains
 ```
 
 Recommended current mode:
 
 ```env
-NGINX_TEMPLATE_MODE=dev-ssl
+NGINX_TEMPLATE_MODE=ssl
 ```
 
-Use this while `dev.api.hftvn.com` has a Let's Encrypt certificate and `glimpse-go.site` does not have its Cloudflare Origin Certificate yet.
+Use this with Cloudflare Origin Certificates for both zone groups:
+
+```txt
+hanwhafintech.com
+*.hanwhafintech.com
+glimpse-go.site
+*.glimpse-go.site
+```
+
+The hanwha wildcard covers `front.hanwhafintech.com` and `back.hanwhafintech.com`. The glimpse wildcard keeps `embed.glimpse-go.site`, `rerank.glimpse-go.site`, and `mlx.glimpse-go.site` working.
+
+If you later use a two-label hostname such as `api.dev.hanwhafintech.com`, add `*.dev.hanwhafintech.com` to the Cloudflare Origin Certificate too. `*.hanwhafintech.com` does not cover that depth.
 
 ## Domain Edit Release
 
@@ -102,7 +111,7 @@ cd /Users/tri/nginx-docker
 Or deploy remotely from the repo:
 
 ```bash
-DEV_NGINX_HOST=tri@dev.hftvn.com scripts/nginx-gateway-release.sh deploy-remote
+DEV_NGINX_HOST=tri@hanwhafintech.com scripts/nginx-gateway-release.sh deploy-remote
 ```
 
 ## Stop Homebrew Nginx
@@ -136,29 +145,23 @@ nano .env
 Use this current `.env` baseline:
 
 ```env
-DEV_DOMAIN=dev.api.hftvn.com
-GLIMPSE_DOMAIN=glimpse-go.site
-GLIMPSE_WWW_DOMAIN=www.glimpse-go.site
-FRONT_DOMAIN=front.glimpse-go.site
-BACK_DOMAIN=back.glimpse-go.site
+FRONT_DOMAIN=front.hanwhafintech.com
+BACK_DOMAIN=back.hanwhafintech.com
 EMBED_DOMAIN=embed.glimpse-go.site
 RERANK_DOMAIN=rerank.glimpse-go.site
 MLX_DOMAIN=mlx.glimpse-go.site
 
 NGINX_IMAGE=dangtri73/glimpse-nginx:latest
-NGINX_TEMPLATE_MODE=dev-ssl
+NGINX_TEMPLATE_MODE=ssl
 
-DEV_SSL_HOST_DIR=./certs/letsencrypt
-DEV_SSL_CERTIFICATE=/etc/letsencrypt/live/dev.api.hftvn.com/fullchain.pem
-DEV_SSL_CERTIFICATE_KEY=/etc/letsencrypt/live/dev.api.hftvn.com/privkey.pem
+HANWHA_SSL_CERTIFICATE=/etc/ssl/cloudflare/hanwhafintech.com/fullchain.pem
+HANWHA_SSL_CERTIFICATE_KEY=/etc/ssl/cloudflare/hanwhafintech.com/privkey.pem
 
 GLIMPSE_SSL_HOST_DIR=./certs/cloudflare
 GLIMPSE_SSL_CERTIFICATE=/etc/ssl/cloudflare/glimpse-go.site/fullchain.pem
 GLIMPSE_SSL_CERTIFICATE_KEY=/etc/ssl/cloudflare/glimpse-go.site/privkey.pem
 
 MACSTUDIO_LAN_IP=<macstudio-lan-ip>
-DEV_UPSTREAM=http://host.docker.internal:5000
-DEFAULT_UPSTREAM=http://${MACSTUDIO_LAN_IP}:11435
 FRONT_UPSTREAM=http://${MACSTUDIO_LAN_IP}:3000
 BACK_UPSTREAM=http://${MACSTUDIO_LAN_IP}:4000
 EMBED_UPSTREAM=http://${MACSTUDIO_LAN_IP}:8089
@@ -166,22 +169,42 @@ RERANK_UPSTREAM=http://${MACSTUDIO_LAN_IP}:8090
 MLX_UPSTREAM=http://${MACSTUDIO_LAN_IP}:8088
 ```
 
-## Copy The Existing Dev API Certificate
+## Install The Cloudflare Origin Certificate
 
-The Let's Encrypt files under `/etc/letsencrypt/live/...` are symlinks. Use `cp -L` so Docker gets real files.
+Create Cloudflare Origin Certificates for both zone groups:
+
+```txt
+hanwhafintech.com
+*.hanwhafintech.com
+glimpse-go.site
+*.glimpse-go.site
+```
+
+Save the certificates and private keys temporarily on the dev server, then install them with the cert manager:
 
 ```bash
 cd /Users/tri/nginx-docker
-./scripts/certs.sh sync-letsencrypt dev.api.hftvn.com
-./scripts/certs.sh check letsencrypt dev.api.hftvn.com
+
+./scripts/certs.sh install cloudflare hanwhafintech.com \
+  /tmp/hanwhafintech.com.fullchain.pem \
+  /tmp/hanwhafintech.com.privkey.pem
+./scripts/certs.sh check cloudflare hanwhafintech.com
+
+./scripts/certs.sh install cloudflare glimpse-go.site \
+  /tmp/glimpse-go.site.fullchain.pem \
+  /tmp/glimpse-go.site.privkey.pem
+./scripts/certs.sh check cloudflare glimpse-go.site
 ```
 
 Check that files exist:
 
 ```bash
-ls -la certs/letsencrypt/live/dev.api.hftvn.com/
-wc -l certs/letsencrypt/live/dev.api.hftvn.com/fullchain.pem
-wc -l certs/letsencrypt/live/dev.api.hftvn.com/privkey.pem
+ls -la certs/cloudflare/hanwhafintech.com/
+wc -l certs/cloudflare/hanwhafintech.com/fullchain.pem
+wc -l certs/cloudflare/hanwhafintech.com/privkey.pem
+ls -la certs/cloudflare/glimpse-go.site/
+wc -l certs/cloudflare/glimpse-go.site/fullchain.pem
+wc -l certs/cloudflare/glimpse-go.site/privkey.pem
 ```
 
 ## Start Docker Nginx
@@ -215,22 +238,25 @@ docker logs --tail=80 glimpse-nginx
 From the dev server:
 
 ```bash
-curl -I -H "Host: glimpse-go.site" http://127.0.0.1
-curl -I -H "Host: www.glimpse-go.site" http://127.0.0.1
-curl -k -I --resolve dev.api.hftvn.com:443:127.0.0.1 https://dev.api.hftvn.com
+curl -k -I --resolve front.hanwhafintech.com:443:127.0.0.1 https://front.hanwhafintech.com
+curl -k -I --resolve back.hanwhafintech.com:443:127.0.0.1 https://back.hanwhafintech.com
+curl -k -I --resolve embed.glimpse-go.site:443:127.0.0.1 https://embed.glimpse-go.site
+curl -k -I --resolve rerank.glimpse-go.site:443:127.0.0.1 https://rerank.glimpse-go.site
+curl -k -I --resolve mlx.glimpse-go.site:443:127.0.0.1 https://mlx.glimpse-go.site
 ```
 
 Expected:
 
-- `glimpse-go.site` returns HTTP response while using `templates-dev-ssl`
-- `dev.api.hftvn.com` redirects HTTP to HTTPS and serves HTTPS
-- `502 Bad Gateway` means Nginx is running but the matching upstream, such as `DEV_UPSTREAM` or `DEFAULT_UPSTREAM`, is not reachable
+- HTTP requests redirect to HTTPS
+- Known HTTPS hosts serve through the configured upstreams
+- `502 Bad Gateway` means Nginx is running but the matching service upstream is not reachable
 
 From another machine:
 
 ```bash
-curl -I http://glimpse-go.site
-curl -I https://dev.api.hftvn.com
+curl -I https://front.hanwhafintech.com
+curl -I https://back.hanwhafintech.com/api/health
+curl -I https://embed.glimpse-go.site
 ```
 
 Unknown hosts should close the connection instead of falling through to the default upstream:
@@ -286,11 +312,13 @@ git push origin main
 
 If the hostname is proxied through Cloudflare and a non-streaming request takes more than Cloudflare's proxy read timeout, Nginx cannot fix that. Use `stream: true`, reduce the model/output size, use a DNS-only hostname for long-running private tests, or call the Mac Studio service through an SSH tunnel.
 
-## Add HTTPS For Glimpse
+## Renew HTTPS Certificate
 
-Create a Cloudflare Origin Certificate for:
+Create or renew the Cloudflare Origin Certificates for:
 
 ```txt
+hanwhafintech.com
+*.hanwhafintech.com
 glimpse-go.site
 *.glimpse-go.site
 ```
@@ -300,13 +328,18 @@ Save the certificate and private key temporarily on the dev server, then install
 ```bash
 cd /Users/tri/nginx-docker
 
+./scripts/certs.sh install cloudflare hanwhafintech.com \
+  /tmp/hanwhafintech.com.fullchain.pem \
+  /tmp/hanwhafintech.com.privkey.pem
+./scripts/certs.sh check cloudflare hanwhafintech.com
+
 ./scripts/certs.sh install cloudflare glimpse-go.site \
   /tmp/glimpse-go.site.fullchain.pem \
   /tmp/glimpse-go.site.privkey.pem
 ./scripts/certs.sh check cloudflare glimpse-go.site
 ```
 
-Then edit `.env`:
+Make sure `.env` uses full SSL:
 
 ```env
 NGINX_TEMPLATE_MODE=ssl
@@ -315,21 +348,29 @@ NGINX_TEMPLATE_MODE=ssl
 Restart and test:
 
 ```bash
-docker-compose down
-docker-compose up -d
+docker compose down
+docker compose up -d
 ./scripts/certs.sh reload
 
-curl -k -I --resolve glimpse-go.site:443:127.0.0.1 https://glimpse-go.site
-curl -k -I --resolve www.glimpse-go.site:443:127.0.0.1 https://www.glimpse-go.site
+curl -k -I --resolve front.hanwhafintech.com:443:127.0.0.1 https://front.hanwhafintech.com
+curl -k -I --resolve back.hanwhafintech.com:443:127.0.0.1 https://back.hanwhafintech.com
+curl -k -I --resolve embed.glimpse-go.site:443:127.0.0.1 https://embed.glimpse-go.site
+curl -k -I --resolve rerank.glimpse-go.site:443:127.0.0.1 https://rerank.glimpse-go.site
+curl -k -I --resolve mlx.glimpse-go.site:443:127.0.0.1 https://mlx.glimpse-go.site
 ```
 
-Cloudflare DNS should use proxied `A` records:
+Cloudflare DNS should use proxied `A` records.
+
+In the `hanwhafintech.com` zone:
 
 ```txt
-A    @          <dev-server-public-ip>
-A    www        <dev-server-public-ip>
 A    front      <dev-server-public-ip>
 A    back       <dev-server-public-ip>
+```
+
+In the `glimpse-go.site` zone:
+
+```txt
 A    embed      <dev-server-public-ip>
 A    rerank     <dev-server-public-ip>
 A    mlx        <dev-server-public-ip>
@@ -345,15 +386,10 @@ Check what template is mounted:
 docker inspect glimpse-nginx --format '{{range .Mounts}}{{println .Source "->" .Destination}}{{end}}'
 ```
 
-Check that Docker can see the dev API cert:
+Check that Docker can see the Cloudflare Origin cert:
 
 ```bash
-docker exec glimpse-nginx ls -la /etc/letsencrypt/live/dev.api.hftvn.com/
-```
-
-Check that Docker can see the glimpse cert after full SSL is enabled:
-
-```bash
+docker exec glimpse-nginx ls -la /etc/ssl/cloudflare/hanwhafintech.com/
 docker exec glimpse-nginx ls -la /etc/ssl/cloudflare/glimpse-go.site/
 ```
 
@@ -386,10 +422,10 @@ ssh -L 8082:127.0.0.1:8082 admin@<macstudio-lan-ip>
 From outside the LAN, use the dev server as a jump host:
 
 ```bash
-ssh -J tri@dev.hftvn.com -L 8123:127.0.0.1:8123 admin@<macstudio-lan-ip>
-ssh -J tri@dev.hftvn.com -L 9000:127.0.0.1:9000 admin@<macstudio-lan-ip>
-ssh -J tri@dev.hftvn.com -L 5433:127.0.0.1:5433 admin@<macstudio-lan-ip>
-ssh -J tri@dev.hftvn.com -L 8082:127.0.0.1:8082 admin@<macstudio-lan-ip>
+ssh -J tri@hanwhafintech.com -L 8123:127.0.0.1:8123 admin@<macstudio-lan-ip>
+ssh -J tri@hanwhafintech.com -L 9000:127.0.0.1:9000 admin@<macstudio-lan-ip>
+ssh -J tri@hanwhafintech.com -L 5433:127.0.0.1:5433 admin@<macstudio-lan-ip>
+ssh -J tri@hanwhafintech.com -L 8082:127.0.0.1:8082 admin@<macstudio-lan-ip>
 ```
 
 Then connect local tools to `localhost`:
