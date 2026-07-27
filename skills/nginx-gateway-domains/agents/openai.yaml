@@ -1,0 +1,4 @@
+interface:
+  display_name: "Nginx Gateway Domains"
+  short_description: "Edit Glimpse gateway domain routes"
+  default_prompt: "Use $nginx-gateway-domains to add, remove, or change Glimpse nginx gateway domains."

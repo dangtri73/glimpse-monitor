@@ -106,16 +106,18 @@ jobs:
             -e DEV_DOMAIN=dev.api.hftvn.com \
             -e GLIMPSE_DOMAIN=glimpse-go.site \
             -e GLIMPSE_WWW_DOMAIN=www.glimpse-go.site \
-            -e DASHBOARD_DOMAIN=dashboard.glimpse-go.site \
-            -e AI_DOMAIN=ai.glimpse-go.site \
-            -e OLLAMA_DOMAIN=ollama.glimpse-go.site \
+            -e FRONT_DOMAIN=front.glimpse-go.site \
+            -e BACK_DOMAIN=back.glimpse-go.site \
+            -e EMBED_DOMAIN=embed.glimpse-go.site \
+            -e RERANK_DOMAIN=rerank.glimpse-go.site \
             -e MLX_DOMAIN=mlx.glimpse-go.site \
             -e MACSTUDIO_LAN_IP=127.0.0.1 \
             -e DEV_UPSTREAM=http://127.0.0.1:5000 \
             -e DEFAULT_UPSTREAM=http://127.0.0.1:11435 \
-            -e DASHBOARD_UPSTREAM=http://127.0.0.1:3000 \
-            -e AI_UPSTREAM=http://127.0.0.1:8771 \
-            -e OLLAMA_UPSTREAM=http://127.0.0.1:11435 \
+            -e FRONT_UPSTREAM=http://127.0.0.1:3000 \
+            -e BACK_UPSTREAM=http://127.0.0.1:4000 \
+            -e EMBED_UPSTREAM=http://127.0.0.1:8089 \
+            -e RERANK_UPSTREAM=http://127.0.0.1:8090 \
             -e MLX_UPSTREAM=http://127.0.0.1:8088 \
             "$IMAGE" nginx -t
 

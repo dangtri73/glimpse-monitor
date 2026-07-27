@@ -97,6 +97,16 @@ upsert_env() {
   fi
 }
 
+remove_env() {
+  key="$1"
+  file=".env"
+
+  if [ -f "$file" ] && grep -q "^$key=" "$file"; then
+    sed -i.bak "/^$key=/d" "$file"
+    rm -f "$file.bak"
+  fi
+}
+
 env_value() {
   key="$1"
   file=".env"
@@ -125,11 +135,19 @@ sync_macstudio_upstreams() {
   esac
 
   upsert_env MACSTUDIO_LAN_IP "$macstudio_lan_ip"
+  remove_env DASHBOARD_DOMAIN
+  remove_env AI_DOMAIN
+  remove_env OLLAMA_DOMAIN
+  remove_env DASHBOARD_UPSTREAM
+  remove_env AI_UPSTREAM
+  remove_env OLLAMA_UPSTREAM
+
   upsert_env DEV_UPSTREAM "${DEV_UPSTREAM:-http://host.docker.internal:5000}"
   upsert_env DEFAULT_UPSTREAM "${DEFAULT_UPSTREAM:-http://$macstudio_lan_ip:11435}"
-  upsert_env DASHBOARD_UPSTREAM "${DASHBOARD_UPSTREAM:-http://$macstudio_lan_ip:3000}"
-  upsert_env AI_UPSTREAM "${AI_UPSTREAM:-http://$macstudio_lan_ip:8771}"
-  upsert_env OLLAMA_UPSTREAM "${OLLAMA_UPSTREAM:-http://$macstudio_lan_ip:11435}"
+  upsert_env FRONT_UPSTREAM "${FRONT_UPSTREAM:-http://$macstudio_lan_ip:3000}"
+  upsert_env BACK_UPSTREAM "${BACK_UPSTREAM:-http://$macstudio_lan_ip:4000}"
+  upsert_env EMBED_UPSTREAM "${EMBED_UPSTREAM:-http://$macstudio_lan_ip:8089}"
+  upsert_env RERANK_UPSTREAM "${RERANK_UPSTREAM:-http://$macstudio_lan_ip:8090}"
   upsert_env MLX_UPSTREAM "${MLX_UPSTREAM:-http://$macstudio_lan_ip:8088}"
 }
 
@@ -140,15 +158,17 @@ validate_runtime_config() {
     DEV_DOMAIN \
     GLIMPSE_DOMAIN \
     GLIMPSE_WWW_DOMAIN \
-    DASHBOARD_DOMAIN \
-    AI_DOMAIN \
-    OLLAMA_DOMAIN \
+    FRONT_DOMAIN \
+    BACK_DOMAIN \
+    EMBED_DOMAIN \
+    RERANK_DOMAIN \
     MLX_DOMAIN \
     DEV_UPSTREAM \
     DEFAULT_UPSTREAM \
-    DASHBOARD_UPSTREAM \
-    AI_UPSTREAM \
-    OLLAMA_UPSTREAM \
+    FRONT_UPSTREAM \
+    BACK_UPSTREAM \
+    EMBED_UPSTREAM \
+    RERANK_UPSTREAM \
     MLX_UPSTREAM; do
     if ! printf '%s\n' "$config" | grep -q "$key:"; then
       echo "ERROR: docker-compose.yml does not pass $key to the nginx container." >&2

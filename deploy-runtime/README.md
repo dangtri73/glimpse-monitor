@@ -106,9 +106,10 @@ Rebuild the tarot vector collection after deploying an AI image that includes th
 The dev server Nginx gateway should expose only HTTP services:
 
 ```txt
-dashboard.glimpse-go.site  -> http://<macstudio-lan-ip>:3000
-ai.glimpse-go.site         -> http://<macstudio-lan-ip>:8771
-ollama.glimpse-go.site     -> http://<macstudio-lan-ip>:11435
+front.glimpse-go.site      -> http://<macstudio-lan-ip>:3000
+back.glimpse-go.site       -> http://<macstudio-lan-ip>:4000
+embed.glimpse-go.site      -> http://<macstudio-lan-ip>:8089
+rerank.glimpse-go.site     -> http://<macstudio-lan-ip>:8090
 mlx.glimpse-go.site        -> http://<macstudio-lan-ip>:8088
 dev.api.hftvn.com          -> http://host.docker.internal:5000
 ```
@@ -117,14 +118,15 @@ Set these in `/Users/tri/nginx-docker/.env`:
 
 ```env
 MACSTUDIO_LAN_IP=<macstudio-lan-ip>
-DASHBOARD_DOMAIN=dashboard.glimpse-go.site
-AI_DOMAIN=ai.glimpse-go.site
-OLLAMA_DOMAIN=ollama.glimpse-go.site
+FRONT_DOMAIN=front.glimpse-go.site
+BACK_DOMAIN=back.glimpse-go.site
+EMBED_DOMAIN=embed.glimpse-go.site
+RERANK_DOMAIN=rerank.glimpse-go.site
 MLX_DOMAIN=mlx.glimpse-go.site
 DEV_UPSTREAM=http://host.docker.internal:5000
 ```
 
-Run `./deploy.sh deploy` after editing `MACSTUDIO_LAN_IP`; it derives `DASHBOARD_UPSTREAM`, `AI_UPSTREAM`, `OLLAMA_UPSTREAM`, and `MLX_UPSTREAM` from that value. `DEV_UPSTREAM` defaults to the dev Mac mini host through `host.docker.internal`.
+Run `./deploy.sh deploy` after editing `MACSTUDIO_LAN_IP`; it derives `FRONT_UPSTREAM`, `BACK_UPSTREAM`, `EMBED_UPSTREAM`, `RERANK_UPSTREAM`, and `MLX_UPSTREAM` from that value. `DEV_UPSTREAM` defaults to the dev Mac mini host through `host.docker.internal`.
 
 Set the same value in GitHub Actions repository variables:
 
@@ -135,9 +137,10 @@ MACSTUDIO_LAN_IP=<macstudio-lan-ip>
 Add Cloudflare DNS records pointing to the dev server public IP:
 
 ```txt
-A    dashboard  <dev-server-public-ip>
-A    ai         <dev-server-public-ip>
-A    ollama     <dev-server-public-ip>
+A    front      <dev-server-public-ip>
+A    back       <dev-server-public-ip>
+A    embed      <dev-server-public-ip>
+A    rerank     <dev-server-public-ip>
 A    mlx        <dev-server-public-ip>
 ```
 

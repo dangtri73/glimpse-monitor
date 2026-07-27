@@ -15,9 +15,10 @@ The dev server owns public ports `80` and `443`. Application services stay on Ma
 Use this gateway for HTTP services only:
 
 ```txt
-dashboard.glimpse-go.site  -> http://<macstudio-lan-ip>:3000
-ai.glimpse-go.site         -> http://<macstudio-lan-ip>:8771
-ollama.glimpse-go.site     -> http://<macstudio-lan-ip>:11435
+front.glimpse-go.site      -> http://<macstudio-lan-ip>:3000
+back.glimpse-go.site       -> http://<macstudio-lan-ip>:4000
+embed.glimpse-go.site      -> http://<macstudio-lan-ip>:8089
+rerank.glimpse-go.site     -> http://<macstudio-lan-ip>:8090
 mlx.glimpse-go.site        -> http://<macstudio-lan-ip>:8088
 dev.api.hftvn.com          -> http://host.docker.internal:5000
 ```
@@ -38,9 +39,10 @@ The default upstream is:
 MACSTUDIO_LAN_IP=<macstudio-lan-ip>
 DEV_UPSTREAM=http://host.docker.internal:5000
 DEFAULT_UPSTREAM=http://${MACSTUDIO_LAN_IP}:11435
-DASHBOARD_UPSTREAM=http://${MACSTUDIO_LAN_IP}:3000
-AI_UPSTREAM=http://${MACSTUDIO_LAN_IP}:8771
-OLLAMA_UPSTREAM=http://${MACSTUDIO_LAN_IP}:11435
+FRONT_UPSTREAM=http://${MACSTUDIO_LAN_IP}:3000
+BACK_UPSTREAM=http://${MACSTUDIO_LAN_IP}:4000
+EMBED_UPSTREAM=http://${MACSTUDIO_LAN_IP}:8089
+RERANK_UPSTREAM=http://${MACSTUDIO_LAN_IP}:8090
 MLX_UPSTREAM=http://${MACSTUDIO_LAN_IP}:8088
 ```
 
@@ -76,6 +78,33 @@ NGINX_TEMPLATE_MODE=dev-ssl
 
 Use this while `dev.api.hftvn.com` has a Let's Encrypt certificate and `glimpse-go.site` does not have its Cloudflare Origin Certificate yet.
 
+## Domain Edit Release
+
+After adding, removing, or changing gateway domains, validate the synchronized nginx templates, runtime env, compose contract, and docs:
+
+```bash
+scripts/nginx-gateway-release.sh check
+```
+
+Build and push the nginx image:
+
+```bash
+DOCKER_PLATFORM=linux/arm64 scripts/nginx-gateway-release.sh build-push
+```
+
+Deploy from the dev server runtime directory:
+
+```bash
+cd /Users/tri/nginx-docker
+./deploy.sh deploy
+```
+
+Or deploy remotely from the repo:
+
+```bash
+DEV_NGINX_HOST=tri@dev.hftvn.com scripts/nginx-gateway-release.sh deploy-remote
+```
+
 ## Stop Homebrew Nginx
 
 Run on the dev server:
@@ -110,9 +139,10 @@ Use this current `.env` baseline:
 DEV_DOMAIN=dev.api.hftvn.com
 GLIMPSE_DOMAIN=glimpse-go.site
 GLIMPSE_WWW_DOMAIN=www.glimpse-go.site
-DASHBOARD_DOMAIN=dashboard.glimpse-go.site
-AI_DOMAIN=ai.glimpse-go.site
-OLLAMA_DOMAIN=ollama.glimpse-go.site
+FRONT_DOMAIN=front.glimpse-go.site
+BACK_DOMAIN=back.glimpse-go.site
+EMBED_DOMAIN=embed.glimpse-go.site
+RERANK_DOMAIN=rerank.glimpse-go.site
 MLX_DOMAIN=mlx.glimpse-go.site
 
 NGINX_IMAGE=dangtri73/glimpse-nginx:latest
@@ -129,9 +159,10 @@ GLIMPSE_SSL_CERTIFICATE_KEY=/etc/ssl/cloudflare/glimpse-go.site/privkey.pem
 MACSTUDIO_LAN_IP=<macstudio-lan-ip>
 DEV_UPSTREAM=http://host.docker.internal:5000
 DEFAULT_UPSTREAM=http://${MACSTUDIO_LAN_IP}:11435
-DASHBOARD_UPSTREAM=http://${MACSTUDIO_LAN_IP}:3000
-AI_UPSTREAM=http://${MACSTUDIO_LAN_IP}:8771
-OLLAMA_UPSTREAM=http://${MACSTUDIO_LAN_IP}:11435
+FRONT_UPSTREAM=http://${MACSTUDIO_LAN_IP}:3000
+BACK_UPSTREAM=http://${MACSTUDIO_LAN_IP}:4000
+EMBED_UPSTREAM=http://${MACSTUDIO_LAN_IP}:8089
+RERANK_UPSTREAM=http://${MACSTUDIO_LAN_IP}:8090
 MLX_UPSTREAM=http://${MACSTUDIO_LAN_IP}:8088
 ```
 
@@ -297,9 +328,11 @@ Cloudflare DNS should use proxied `A` records:
 ```txt
 A    @          <dev-server-public-ip>
 A    www        <dev-server-public-ip>
-A    dashboard  <dev-server-public-ip>
-A    ai         <dev-server-public-ip>
-A    ollama     <dev-server-public-ip>
+A    front      <dev-server-public-ip>
+A    back       <dev-server-public-ip>
+A    embed      <dev-server-public-ip>
+A    rerank     <dev-server-public-ip>
+A    mlx        <dev-server-public-ip>
 ```
 
 Use Cloudflare SSL/TLS mode `Full (strict)` after the origin certificate is installed.

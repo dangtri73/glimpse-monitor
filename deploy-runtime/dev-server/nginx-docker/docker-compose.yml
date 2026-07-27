@@ -18,9 +18,10 @@ services:
       DEV_DOMAIN: ${DEV_DOMAIN:-dev.api.hftvn.com}
       GLIMPSE_DOMAIN: ${GLIMPSE_DOMAIN:-glimpse-go.site}
       GLIMPSE_WWW_DOMAIN: ${GLIMPSE_WWW_DOMAIN:-www.glimpse-go.site}
-      DASHBOARD_DOMAIN: ${DASHBOARD_DOMAIN:-dashboard.glimpse-go.site}
-      AI_DOMAIN: ${AI_DOMAIN:-ai.glimpse-go.site}
-      OLLAMA_DOMAIN: ${OLLAMA_DOMAIN:-ollama.glimpse-go.site}
+      FRONT_DOMAIN: ${FRONT_DOMAIN:-front.glimpse-go.site}
+      BACK_DOMAIN: ${BACK_DOMAIN:-back.glimpse-go.site}
+      EMBED_DOMAIN: ${EMBED_DOMAIN:-embed.glimpse-go.site}
+      RERANK_DOMAIN: ${RERANK_DOMAIN:-rerank.glimpse-go.site}
       MLX_DOMAIN: ${MLX_DOMAIN:-mlx.glimpse-go.site}
       MACSTUDIO_LAN_IP: "${MACSTUDIO_LAN_IP:?Set MACSTUDIO_LAN_IP in .env}"
       DEV_SSL_CERTIFICATE: ${DEV_SSL_CERTIFICATE:-/etc/letsencrypt/live/dev.api.hftvn.com/fullchain.pem}
@@ -29,9 +30,10 @@ services:
       GLIMPSE_SSL_CERTIFICATE_KEY: ${GLIMPSE_SSL_CERTIFICATE_KEY:-/etc/ssl/cloudflare/glimpse-go.site/privkey.pem}
       DEV_UPSTREAM: "${DEV_UPSTREAM:?Run ./deploy.sh deploy or set DEV_UPSTREAM in .env}"
       DEFAULT_UPSTREAM: "${DEFAULT_UPSTREAM:?Run ./deploy.sh deploy or set DEFAULT_UPSTREAM in .env}"
-      DASHBOARD_UPSTREAM: "${DASHBOARD_UPSTREAM:?Run ./deploy.sh deploy or set DASHBOARD_UPSTREAM in .env}"
-      AI_UPSTREAM: "${AI_UPSTREAM:?Run ./deploy.sh deploy or set AI_UPSTREAM in .env}"
-      OLLAMA_UPSTREAM: "${OLLAMA_UPSTREAM:?Run ./deploy.sh deploy or set OLLAMA_UPSTREAM in .env}"
+      FRONT_UPSTREAM: "${FRONT_UPSTREAM:?Run ./deploy.sh deploy or set FRONT_UPSTREAM in .env}"
+      BACK_UPSTREAM: "${BACK_UPSTREAM:?Run ./deploy.sh deploy or set BACK_UPSTREAM in .env}"
+      EMBED_UPSTREAM: "${EMBED_UPSTREAM:?Run ./deploy.sh deploy or set EMBED_UPSTREAM in .env}"
+      RERANK_UPSTREAM: "${RERANK_UPSTREAM:?Run ./deploy.sh deploy or set RERANK_UPSTREAM in .env}"
       MLX_UPSTREAM: "${MLX_UPSTREAM:?Run ./deploy.sh deploy or set MLX_UPSTREAM in .env}"
       NGINX_TEMPLATE_MODE: ${NGINX_TEMPLATE_MODE:-dev-ssl}
     extra_hosts:
