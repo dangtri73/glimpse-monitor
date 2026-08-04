@@ -15,8 +15,10 @@ services:
       - "${HTTP_PORT:-80}:80"
       - "${HTTPS_PORT:-443}:443"
     environment:
-      FRONT_DOMAIN: ${FRONT_DOMAIN:-front.hanwhafintech.com}
-      BACK_DOMAIN: ${BACK_DOMAIN:-back.hanwhafintech.com}
+      TASK_DEV_DOMAIN: ${TASK_DEV_DOMAIN:-task-dev.hanwhafintech.com}
+      TASK_DEV_API_DOMAIN: ${TASK_DEV_API_DOMAIN:-task-api-dev.hanwhafintech.com}
+      TASK_PROD_DOMAIN: ${TASK_PROD_DOMAIN:-task.hanwhafintech.com}
+      TASK_PROD_API_DOMAIN: ${TASK_PROD_API_DOMAIN:-task-api.hanwhafintech.com}
       EMBED_DOMAIN: ${EMBED_DOMAIN:-embed.glimpse-go.site}
       RERANK_DOMAIN: ${RERANK_DOMAIN:-rerank.glimpse-go.site}
       MLX_DOMAIN: ${MLX_DOMAIN:-mlx.glimpse-go.site}
@@ -25,8 +27,10 @@ services:
       HANWHA_SSL_CERTIFICATE_KEY: ${HANWHA_SSL_CERTIFICATE_KEY:-/etc/ssl/cloudflare/hanwhafintech.com/privkey.pem}
       GLIMPSE_SSL_CERTIFICATE: ${GLIMPSE_SSL_CERTIFICATE:-/etc/ssl/cloudflare/glimpse-go.site/fullchain.pem}
       GLIMPSE_SSL_CERTIFICATE_KEY: ${GLIMPSE_SSL_CERTIFICATE_KEY:-/etc/ssl/cloudflare/glimpse-go.site/privkey.pem}
-      FRONT_UPSTREAM: "${FRONT_UPSTREAM:?Run ./deploy.sh deploy or set FRONT_UPSTREAM in .env}"
-      BACK_UPSTREAM: "${BACK_UPSTREAM:?Run ./deploy.sh deploy or set BACK_UPSTREAM in .env}"
+      TASK_DEV_UPSTREAM: "${TASK_DEV_UPSTREAM:?Run ./deploy.sh deploy or set TASK_DEV_UPSTREAM in .env}"
+      TASK_DEV_API_UPSTREAM: "${TASK_DEV_API_UPSTREAM:?Run ./deploy.sh deploy or set TASK_DEV_API_UPSTREAM in .env}"
+      TASK_PROD_UPSTREAM: "${TASK_PROD_UPSTREAM:?Run ./deploy.sh deploy or set TASK_PROD_UPSTREAM in .env}"
+      TASK_PROD_API_UPSTREAM: "${TASK_PROD_API_UPSTREAM:?Run ./deploy.sh deploy or set TASK_PROD_API_UPSTREAM in .env}"
       EMBED_UPSTREAM: "${EMBED_UPSTREAM:?Run ./deploy.sh deploy or set EMBED_UPSTREAM in .env}"
       RERANK_UPSTREAM: "${RERANK_UPSTREAM:?Run ./deploy.sh deploy or set RERANK_UPSTREAM in .env}"
       MLX_UPSTREAM: "${MLX_UPSTREAM:?Run ./deploy.sh deploy or set MLX_UPSTREAM in .env}"

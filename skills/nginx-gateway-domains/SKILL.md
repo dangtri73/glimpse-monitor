@@ -35,8 +35,14 @@ For each route change:
 Use explicit variables per public service:
 
 ```env
-FRONT_DOMAIN=front.hanwhafintech.com
-FRONT_UPSTREAM=http://${MACSTUDIO_LAN_IP}:3000
+TASK_DEV_DOMAIN=task-dev.hanwhafintech.com
+TASK_DEV_UPSTREAM=http://${MACSTUDIO_LAN_IP}:3000
+TASK_DEV_API_DOMAIN=task-api-dev.hanwhafintech.com
+TASK_DEV_API_UPSTREAM=http://${MACSTUDIO_LAN_IP}:4000
+TASK_PROD_DOMAIN=task.hanwhafintech.com
+TASK_PROD_UPSTREAM=http://${MACSTUDIO_LAN_IP}:3001
+TASK_PROD_API_DOMAIN=task-api.hanwhafintech.com
+TASK_PROD_API_UPSTREAM=http://${MACSTUDIO_LAN_IP}:4001
 ```
 
 For Mac Studio services, derive upstreams in `deploy.sh` from `MACSTUDIO_LAN_IP`. For services running directly on the dev Mac mini host, use `http://host.docker.internal:<port>` and keep the compose `extra_hosts` mapping.
@@ -62,7 +68,7 @@ certs/cloudflare/hanwhafintech.com/fullchain.pem
 certs/cloudflare/hanwhafintech.com/privkey.pem
 ```
 
-Use `GLIMPSE_SSL_CERTIFICATE` for `glimpse-go.site` routes. Use `HANWHA_SSL_CERTIFICATE` for one-label `hanwhafintech.com` subdomains such as `front` and `back`.
+Use `GLIMPSE_SSL_CERTIFICATE` for `glimpse-go.site` routes. Use `HANWHA_SSL_CERTIFICATE` for one-label `hanwhafintech.com` subdomains such as `task-dev`, `task-api-dev`, `task`, and `task-api`.
 
 Cloudflare should normally use `Full (strict)` once the origin certificate is installed.
 

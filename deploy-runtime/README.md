@@ -107,11 +107,13 @@ Rebuild the tarot vector collection after deploying an AI image that includes th
 The dev server Nginx gateway should expose only HTTP services:
 
 ```txt
-front.hanwhafintech.com      -> http://<macstudio-lan-ip>:3000
-back.hanwhafintech.com       -> http://<macstudio-lan-ip>:4000
-embed.glimpse-go.site        -> http://<macstudio-lan-ip>:8089
-rerank.glimpse-go.site       -> http://<macstudio-lan-ip>:8090
-mlx.glimpse-go.site          -> http://<macstudio-lan-ip>:8088
+task-dev.hanwhafintech.com      -> http://<macstudio-lan-ip>:3000
+task-api-dev.hanwhafintech.com  -> http://<macstudio-lan-ip>:4000
+task.hanwhafintech.com          -> http://<macstudio-lan-ip>:3001
+task-api.hanwhafintech.com      -> http://<macstudio-lan-ip>:4001
+embed.glimpse-go.site           -> http://<macstudio-lan-ip>:8089
+rerank.glimpse-go.site          -> http://<macstudio-lan-ip>:8090
+mlx.glimpse-go.site             -> http://<macstudio-lan-ip>:8088
 ```
 
 Set these in `/Users/tri/nginx-docker/.env`:
@@ -119,18 +121,24 @@ Set these in `/Users/tri/nginx-docker/.env`:
 ```env
 MACSTUDIO_LAN_IP=<macstudio-lan-ip>
 NGINX_TEMPLATE_MODE=ssl
-FRONT_DOMAIN=front.hanwhafintech.com
-BACK_DOMAIN=back.hanwhafintech.com
+TASK_DEV_DOMAIN=task-dev.hanwhafintech.com
+TASK_DEV_API_DOMAIN=task-api-dev.hanwhafintech.com
+TASK_PROD_DOMAIN=task.hanwhafintech.com
+TASK_PROD_API_DOMAIN=task-api.hanwhafintech.com
 EMBED_DOMAIN=embed.glimpse-go.site
 RERANK_DOMAIN=rerank.glimpse-go.site
 MLX_DOMAIN=mlx.glimpse-go.site
+TASK_DEV_UPSTREAM=http://${MACSTUDIO_LAN_IP}:3000
+TASK_DEV_API_UPSTREAM=http://${MACSTUDIO_LAN_IP}:4000
+TASK_PROD_UPSTREAM=http://${MACSTUDIO_LAN_IP}:3001
+TASK_PROD_API_UPSTREAM=http://${MACSTUDIO_LAN_IP}:4001
 HANWHA_SSL_CERTIFICATE=/etc/ssl/cloudflare/hanwhafintech.com/fullchain.pem
 HANWHA_SSL_CERTIFICATE_KEY=/etc/ssl/cloudflare/hanwhafintech.com/privkey.pem
 GLIMPSE_SSL_CERTIFICATE=/etc/ssl/cloudflare/glimpse-go.site/fullchain.pem
 GLIMPSE_SSL_CERTIFICATE_KEY=/etc/ssl/cloudflare/glimpse-go.site/privkey.pem
 ```
 
-Run `./deploy.sh deploy` after editing `MACSTUDIO_LAN_IP`; it derives `FRONT_UPSTREAM`, `BACK_UPSTREAM`, `EMBED_UPSTREAM`, `RERANK_UPSTREAM`, and `MLX_UPSTREAM` from that value.
+Run `./deploy.sh deploy` after editing `MACSTUDIO_LAN_IP`; it derives the task, embed, rerank, and MLX upstream URLs from that value.
 
 Install Cloudflare Origin Certificates on the dev server for both zone groups:
 
@@ -141,7 +149,7 @@ glimpse-go.site
 *.glimpse-go.site
 ```
 
-The hanwha wildcard covers `front.hanwhafintech.com` and `back.hanwhafintech.com`. The glimpse wildcard keeps `embed.glimpse-go.site`, `rerank.glimpse-go.site`, and `mlx.glimpse-go.site` working.
+The hanwha wildcard covers `task-dev.hanwhafintech.com`, `task-api-dev.hanwhafintech.com`, `task.hanwhafintech.com`, and `task-api.hanwhafintech.com`. The glimpse wildcard keeps `embed.glimpse-go.site`, `rerank.glimpse-go.site`, and `mlx.glimpse-go.site` working.
 
 Set the same value in GitHub Actions repository variables:
 
@@ -154,8 +162,10 @@ Add Cloudflare DNS records pointing to the dev server public IP.
 In the `hanwhafintech.com` zone:
 
 ```txt
-A    front      <dev-server-public-ip>
-A    back       <dev-server-public-ip>
+A    task-dev       <dev-server-public-ip>
+A    task-api-dev   <dev-server-public-ip>
+A    task           <dev-server-public-ip>
+A    task-api       <dev-server-public-ip>
 ```
 
 In the `glimpse-go.site` zone:

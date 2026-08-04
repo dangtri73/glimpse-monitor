@@ -127,7 +127,7 @@ Each agent needs stable configuration:
   "deviceId": "mac-studio",
   "deviceName": "Mac Studio",
   "role": "compute",
-  "ingestUrl": "https://back.hanwhafintech.com/api/ingest/metrics",
+  "ingestUrl": "https://task-api-dev.hanwhafintech.com/api/ingest/metrics",
   "agentToken": "secret-per-device-token"
 }
 ```

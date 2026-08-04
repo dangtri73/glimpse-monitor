@@ -3,7 +3,7 @@
     "id": "dev-gateway",
     "name": "Dev Gateway",
     "role": "public-entry",
-    "host": "front.hanwhafintech.com",
+    "host": "task.hanwhafintech.com",
     "lanIp": null,
     "notes": "Public SSL/Nginx gateway. Keep privileged port mapping changes behind login and approval."
   },
@@ -26,8 +26,8 @@
       "name": "Dev Gateway",
       "role": "gateway",
       "lanIp": null,
-      "publicHost": "front.hanwhafintech.com",
-      "healthPath": "https://front.hanwhafintech.com/nginx-health",
+      "publicHost": "task.hanwhafintech.com",
+      "healthPath": "https://task.hanwhafintech.com/nginx-health",
       "tags": [
         "nginx",
         "public",
@@ -87,8 +87,10 @@
     "reservedHosts": [
       "glimpse-go.site",
       "www.glimpse-go.site",
-      "front.hanwhafintech.com",
-      "back.hanwhafintech.com",
+      "task-dev.hanwhafintech.com",
+      "task-api-dev.hanwhafintech.com",
+      "task.hanwhafintech.com",
+      "task-api.hanwhafintech.com",
       "embed.glimpse-go.site",
       "rerank.glimpse-go.site",
       "mlx.glimpse-go.site"

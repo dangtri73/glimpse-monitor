@@ -110,8 +110,10 @@ docker pull nginx:1.27-alpine
 docker build --pull --platform linux/arm64 -t glimpse-nginx-test .
 docker run --rm \
   -e NGINX_TEMPLATE_MODE=http \
-  -e FRONT_DOMAIN=front.hanwhafintech.com \
-  -e BACK_DOMAIN=back.hanwhafintech.com \
+  -e TASK_DEV_DOMAIN=task-dev.hanwhafintech.com \
+  -e TASK_DEV_API_DOMAIN=task-api-dev.hanwhafintech.com \
+  -e TASK_PROD_DOMAIN=task.hanwhafintech.com \
+  -e TASK_PROD_API_DOMAIN=task-api.hanwhafintech.com \
   -e EMBED_DOMAIN=embed.glimpse-go.site \
   -e RERANK_DOMAIN=rerank.glimpse-go.site \
   -e MLX_DOMAIN=mlx.glimpse-go.site \
@@ -119,11 +121,13 @@ docker run --rm \
   -e HANWHA_SSL_CERTIFICATE_KEY=/etc/ssl/cloudflare/hanwhafintech.com/privkey.pem \
   -e GLIMPSE_SSL_CERTIFICATE=/etc/ssl/cloudflare/glimpse-go.site/fullchain.pem \
   -e GLIMPSE_SSL_CERTIFICATE_KEY=/etc/ssl/cloudflare/glimpse-go.site/privkey.pem \
-  -e FRONT_UPSTREAM=http://127.0.0.1:3000 \
-  -e BACK_UPSTREAM=http://127.0.0.1:4000 \
-  -e EMBED_UPSTREAM=http://127.0.0.1:8089 \
-  -e RERANK_UPSTREAM=http://127.0.0.1:8090 \
-  -e MLX_UPSTREAM=http://127.0.0.1:8088 \
+  -e TASK_DEV_UPSTREAM=http://192.0.2.10:3000 \
+  -e TASK_DEV_API_UPSTREAM=http://192.0.2.10:4000 \
+  -e TASK_PROD_UPSTREAM=http://192.0.2.10:3001 \
+  -e TASK_PROD_API_UPSTREAM=http://192.0.2.10:4001 \
+  -e EMBED_UPSTREAM=http://192.0.2.10:8089 \
+  -e RERANK_UPSTREAM=http://192.0.2.10:8090 \
+  -e MLX_UPSTREAM=http://192.0.2.10:8088 \
   glimpse-nginx-test nginx -t
 ```
 

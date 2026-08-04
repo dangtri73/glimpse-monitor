@@ -15,11 +15,13 @@ The dev server owns public ports `80` and `443`. Application services stay on Ma
 Use this gateway for HTTP services only:
 
 ```txt
-front.hanwhafintech.com      -> http://<macstudio-lan-ip>:3000
-back.hanwhafintech.com       -> http://<macstudio-lan-ip>:4000
-embed.glimpse-go.site        -> http://<macstudio-lan-ip>:8089
-rerank.glimpse-go.site       -> http://<macstudio-lan-ip>:8090
-mlx.glimpse-go.site          -> http://<macstudio-lan-ip>:8088
+task-dev.hanwhafintech.com      -> http://<macstudio-lan-ip>:3000
+task-api-dev.hanwhafintech.com  -> http://<macstudio-lan-ip>:4000
+task.hanwhafintech.com          -> http://<macstudio-lan-ip>:3001
+task-api.hanwhafintech.com      -> http://<macstudio-lan-ip>:4001
+embed.glimpse-go.site           -> http://<macstudio-lan-ip>:8089
+rerank.glimpse-go.site          -> http://<macstudio-lan-ip>:8090
+mlx.glimpse-go.site             -> http://<macstudio-lan-ip>:8088
 ```
 
 Do not route Postgres, Kafka, ClickHouse, Redis, Qdrant, Prometheus, Grafana, Adminer, or Kafka UI through public Nginx. Use SSH tunnels for those private ports.
@@ -27,8 +29,10 @@ Do not route Postgres, Kafka, ClickHouse, Redis, Qdrant, Prometheus, Grafana, Ad
 ## Current Domains
 
 ```txt
-front.hanwhafintech.com
-back.hanwhafintech.com
+task-dev.hanwhafintech.com
+task-api-dev.hanwhafintech.com
+task.hanwhafintech.com
+task-api.hanwhafintech.com
 embed.glimpse-go.site
 rerank.glimpse-go.site
 mlx.glimpse-go.site
@@ -38,14 +42,16 @@ The Mac Studio upstreams are:
 
 ```env
 MACSTUDIO_LAN_IP=<macstudio-lan-ip>
-FRONT_UPSTREAM=http://${MACSTUDIO_LAN_IP}:3000
-BACK_UPSTREAM=http://${MACSTUDIO_LAN_IP}:4000
+TASK_DEV_UPSTREAM=http://${MACSTUDIO_LAN_IP}:3000
+TASK_DEV_API_UPSTREAM=http://${MACSTUDIO_LAN_IP}:4000
+TASK_PROD_UPSTREAM=http://${MACSTUDIO_LAN_IP}:3001
+TASK_PROD_API_UPSTREAM=http://${MACSTUDIO_LAN_IP}:4001
 EMBED_UPSTREAM=http://${MACSTUDIO_LAN_IP}:8089
 RERANK_UPSTREAM=http://${MACSTUDIO_LAN_IP}:8090
 MLX_UPSTREAM=http://${MACSTUDIO_LAN_IP}:8088
 ```
 
-Change `MACSTUDIO_LAN_IP` in `/Users/tri/nginx-docker/.env` when the Mac Studio LAN IP changes, then run `./deploy.sh deploy`. The deploy script rewrites the upstream URLs from that one value.
+Change `MACSTUDIO_LAN_IP` in `/Users/tri/nginx-docker/.env` when the Mac Studio LAN IP changes, then run `./deploy.sh deploy`. The deploy script rewrites the task, embed, rerank, and MLX upstream URLs from that one value.
 
 For GitHub Actions deploys, set the repository variable with the same value:
 
@@ -83,7 +89,7 @@ glimpse-go.site
 *.glimpse-go.site
 ```
 
-The hanwha wildcard covers `front.hanwhafintech.com` and `back.hanwhafintech.com`. The glimpse wildcard keeps `embed.glimpse-go.site`, `rerank.glimpse-go.site`, and `mlx.glimpse-go.site` working.
+The hanwha wildcard covers `task-dev.hanwhafintech.com`, `task-api-dev.hanwhafintech.com`, `task.hanwhafintech.com`, and `task-api.hanwhafintech.com`. The glimpse wildcard keeps `embed.glimpse-go.site`, `rerank.glimpse-go.site`, and `mlx.glimpse-go.site` working.
 
 If you later use a two-label hostname such as `api.dev.hanwhafintech.com`, add `*.dev.hanwhafintech.com` to the Cloudflare Origin Certificate too. `*.hanwhafintech.com` does not cover that depth.
 
@@ -145,8 +151,10 @@ nano .env
 Use this current `.env` baseline:
 
 ```env
-FRONT_DOMAIN=front.hanwhafintech.com
-BACK_DOMAIN=back.hanwhafintech.com
+TASK_DEV_DOMAIN=task-dev.hanwhafintech.com
+TASK_DEV_API_DOMAIN=task-api-dev.hanwhafintech.com
+TASK_PROD_DOMAIN=task.hanwhafintech.com
+TASK_PROD_API_DOMAIN=task-api.hanwhafintech.com
 EMBED_DOMAIN=embed.glimpse-go.site
 RERANK_DOMAIN=rerank.glimpse-go.site
 MLX_DOMAIN=mlx.glimpse-go.site
@@ -162,8 +170,10 @@ GLIMPSE_SSL_CERTIFICATE=/etc/ssl/cloudflare/glimpse-go.site/fullchain.pem
 GLIMPSE_SSL_CERTIFICATE_KEY=/etc/ssl/cloudflare/glimpse-go.site/privkey.pem
 
 MACSTUDIO_LAN_IP=<macstudio-lan-ip>
-FRONT_UPSTREAM=http://${MACSTUDIO_LAN_IP}:3000
-BACK_UPSTREAM=http://${MACSTUDIO_LAN_IP}:4000
+TASK_DEV_UPSTREAM=http://${MACSTUDIO_LAN_IP}:3000
+TASK_DEV_API_UPSTREAM=http://${MACSTUDIO_LAN_IP}:4000
+TASK_PROD_UPSTREAM=http://${MACSTUDIO_LAN_IP}:3001
+TASK_PROD_API_UPSTREAM=http://${MACSTUDIO_LAN_IP}:4001
 EMBED_UPSTREAM=http://${MACSTUDIO_LAN_IP}:8089
 RERANK_UPSTREAM=http://${MACSTUDIO_LAN_IP}:8090
 MLX_UPSTREAM=http://${MACSTUDIO_LAN_IP}:8088
@@ -238,8 +248,10 @@ docker logs --tail=80 glimpse-nginx
 From the dev server:
 
 ```bash
-curl -k -I --resolve front.hanwhafintech.com:443:127.0.0.1 https://front.hanwhafintech.com
-curl -k -I --resolve back.hanwhafintech.com:443:127.0.0.1 https://back.hanwhafintech.com
+curl -k -I --resolve task-dev.hanwhafintech.com:443:127.0.0.1 https://task-dev.hanwhafintech.com
+curl -k -I --resolve task-api-dev.hanwhafintech.com:443:127.0.0.1 https://task-api-dev.hanwhafintech.com
+curl -k -I --resolve task.hanwhafintech.com:443:127.0.0.1 https://task.hanwhafintech.com
+curl -k -I --resolve task-api.hanwhafintech.com:443:127.0.0.1 https://task-api.hanwhafintech.com
 curl -k -I --resolve embed.glimpse-go.site:443:127.0.0.1 https://embed.glimpse-go.site
 curl -k -I --resolve rerank.glimpse-go.site:443:127.0.0.1 https://rerank.glimpse-go.site
 curl -k -I --resolve mlx.glimpse-go.site:443:127.0.0.1 https://mlx.glimpse-go.site
@@ -254,8 +266,10 @@ Expected:
 From another machine:
 
 ```bash
-curl -I https://front.hanwhafintech.com
-curl -I https://back.hanwhafintech.com/api/health
+curl -I https://task-dev.hanwhafintech.com
+curl -I https://task-api-dev.hanwhafintech.com/api/health
+curl -I https://task.hanwhafintech.com
+curl -I https://task-api.hanwhafintech.com/api/health
 curl -I https://embed.glimpse-go.site
 ```
 
@@ -352,8 +366,10 @@ docker compose down
 docker compose up -d
 ./scripts/certs.sh reload
 
-curl -k -I --resolve front.hanwhafintech.com:443:127.0.0.1 https://front.hanwhafintech.com
-curl -k -I --resolve back.hanwhafintech.com:443:127.0.0.1 https://back.hanwhafintech.com
+curl -k -I --resolve task-dev.hanwhafintech.com:443:127.0.0.1 https://task-dev.hanwhafintech.com
+curl -k -I --resolve task-api-dev.hanwhafintech.com:443:127.0.0.1 https://task-api-dev.hanwhafintech.com
+curl -k -I --resolve task.hanwhafintech.com:443:127.0.0.1 https://task.hanwhafintech.com
+curl -k -I --resolve task-api.hanwhafintech.com:443:127.0.0.1 https://task-api.hanwhafintech.com
 curl -k -I --resolve embed.glimpse-go.site:443:127.0.0.1 https://embed.glimpse-go.site
 curl -k -I --resolve rerank.glimpse-go.site:443:127.0.0.1 https://rerank.glimpse-go.site
 curl -k -I --resolve mlx.glimpse-go.site:443:127.0.0.1 https://mlx.glimpse-go.site
@@ -364,8 +380,10 @@ Cloudflare DNS should use proxied `A` records.
 In the `hanwhafintech.com` zone:
 
 ```txt
-A    front      <dev-server-public-ip>
-A    back       <dev-server-public-ip>
+A    task-dev       <dev-server-public-ip>
+A    task-api-dev   <dev-server-public-ip>
+A    task           <dev-server-public-ip>
+A    task-api       <dev-server-public-ip>
 ```
 
 In the `glimpse-go.site` zone:

@@ -169,11 +169,17 @@ sync_macstudio_upstreams() {
   remove_env DEV_SSL_CERTIFICATE_KEY
   remove_env GLIMPSE_DOMAIN
   remove_env GLIMPSE_WWW_DOMAIN
+  remove_env FRONT_DOMAIN
+  remove_env BACK_DOMAIN
+  remove_env FRONT_UPSTREAM
+  remove_env BACK_UPSTREAM
 
-  upsert_env_if_missing_or_legacy FRONT_DOMAIN "front.hanwhafintech.com" \
+  upsert_env_if_missing_or_legacy TASK_DEV_DOMAIN "task-dev.hanwhafintech.com" \
     "front.glimpse-go.site"
-  upsert_env_if_missing_or_legacy BACK_DOMAIN "back.hanwhafintech.com" \
+  upsert_env_if_missing_or_legacy TASK_DEV_API_DOMAIN "task-api-dev.hanwhafintech.com" \
     "back.glimpse-go.site"
+  upsert_env_if_missing_or_legacy TASK_PROD_DOMAIN "task.hanwhafintech.com"
+  upsert_env_if_missing_or_legacy TASK_PROD_API_DOMAIN "task-api.hanwhafintech.com"
   upsert_env_if_missing_or_legacy EMBED_DOMAIN "embed.glimpse-go.site" \
     "embed.hanwhafintech.com"
   upsert_env_if_missing_or_legacy RERANK_DOMAIN "rerank.glimpse-go.site" \
@@ -191,8 +197,18 @@ sync_macstudio_upstreams() {
   upsert_env_if_missing_or_legacy GLIMPSE_SSL_CERTIFICATE_KEY "/etc/ssl/cloudflare/glimpse-go.site/privkey.pem" \
     "/etc/ssl/cloudflare/hanwhafintech.com/privkey.pem"
 
-  upsert_env FRONT_UPSTREAM "${FRONT_UPSTREAM:-http://$macstudio_lan_ip:3000}"
-  upsert_env BACK_UPSTREAM "${BACK_UPSTREAM:-http://$macstudio_lan_ip:4000}"
+  upsert_env_if_missing_or_legacy TASK_DEV_UPSTREAM "http://$macstudio_lan_ip:3000" \
+    "http://127.0.0.1:3000" \
+    'http://${MACSTUDIO_LAN_IP}:3000'
+  upsert_env_if_missing_or_legacy TASK_DEV_API_UPSTREAM "http://$macstudio_lan_ip:4000" \
+    "http://127.0.0.1:4000" \
+    'http://${MACSTUDIO_LAN_IP}:4000'
+  upsert_env_if_missing_or_legacy TASK_PROD_UPSTREAM "http://$macstudio_lan_ip:3001" \
+    "http://127.0.0.1:3001" \
+    'http://${MACSTUDIO_LAN_IP}:3001'
+  upsert_env_if_missing_or_legacy TASK_PROD_API_UPSTREAM "http://$macstudio_lan_ip:4001" \
+    "http://127.0.0.1:4001" \
+    'http://${MACSTUDIO_LAN_IP}:4001'
   upsert_env EMBED_UPSTREAM "${EMBED_UPSTREAM:-http://$macstudio_lan_ip:8089}"
   upsert_env RERANK_UPSTREAM "${RERANK_UPSTREAM:-http://$macstudio_lan_ip:8090}"
   upsert_env MLX_UPSTREAM "${MLX_UPSTREAM:-http://$macstudio_lan_ip:8088}"
@@ -202,8 +218,10 @@ validate_runtime_config() {
   config="$(compose config)"
 
   for key in \
-    FRONT_DOMAIN \
-    BACK_DOMAIN \
+    TASK_DEV_DOMAIN \
+    TASK_DEV_API_DOMAIN \
+    TASK_PROD_DOMAIN \
+    TASK_PROD_API_DOMAIN \
     EMBED_DOMAIN \
     RERANK_DOMAIN \
     MLX_DOMAIN \
@@ -211,8 +229,10 @@ validate_runtime_config() {
     HANWHA_SSL_CERTIFICATE_KEY \
     GLIMPSE_SSL_CERTIFICATE \
     GLIMPSE_SSL_CERTIFICATE_KEY \
-    FRONT_UPSTREAM \
-    BACK_UPSTREAM \
+    TASK_DEV_UPSTREAM \
+    TASK_DEV_API_UPSTREAM \
+    TASK_PROD_UPSTREAM \
+    TASK_PROD_API_UPSTREAM \
     EMBED_UPSTREAM \
     RERANK_UPSTREAM \
     MLX_UPSTREAM; do

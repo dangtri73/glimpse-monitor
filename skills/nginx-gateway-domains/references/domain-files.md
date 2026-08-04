@@ -32,11 +32,13 @@
 ## Current Public Routes
 
 ```txt
-front.hanwhafintech.com  -> http://${MACSTUDIO_LAN_IP}:3000
-back.hanwhafintech.com   -> http://${MACSTUDIO_LAN_IP}:4000
-embed.glimpse-go.site    -> http://${MACSTUDIO_LAN_IP}:8089
-rerank.glimpse-go.site   -> http://${MACSTUDIO_LAN_IP}:8090
-mlx.glimpse-go.site      -> http://${MACSTUDIO_LAN_IP}:8088
+task-dev.hanwhafintech.com      -> http://${MACSTUDIO_LAN_IP}:3000
+task-api-dev.hanwhafintech.com  -> http://${MACSTUDIO_LAN_IP}:4000
+task.hanwhafintech.com          -> http://${MACSTUDIO_LAN_IP}:3001
+task-api.hanwhafintech.com      -> http://${MACSTUDIO_LAN_IP}:4001
+embed.glimpse-go.site           -> http://${MACSTUDIO_LAN_IP}:8089
+rerank.glimpse-go.site          -> http://${MACSTUDIO_LAN_IP}:8090
+mlx.glimpse-go.site             -> http://${MACSTUDIO_LAN_IP}:8088
 ```
 
 ## Current HTTPS Certificate
@@ -64,4 +66,4 @@ hanwhafintech.com
 *.hanwhafintech.com
 ```
 
-`*.hanwhafintech.com` covers one-label hosts such as `front.hanwhafintech.com`. It does not cover two-label hosts such as `api.dev.hanwhafintech.com`.
+`*.hanwhafintech.com` covers one-label hosts such as `task-dev.hanwhafintech.com`, `task-api-dev.hanwhafintech.com`, `task.hanwhafintech.com`, and `task-api.hanwhafintech.com`. It does not cover two-label hosts such as `api.dev.hanwhafintech.com`.

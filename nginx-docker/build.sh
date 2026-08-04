@@ -127,13 +127,13 @@ trace_template_contract() {
     printf '  %-40s %s\n' "$mode" "$vars"
   done
 
-  for var in FRONT_DOMAIN BACK_DOMAIN EMBED_DOMAIN RERANK_DOMAIN MLX_DOMAIN; do
+  for var in TASK_DEV_DOMAIN TASK_DEV_API_DOMAIN TASK_PROD_DOMAIN TASK_PROD_API_DOMAIN EMBED_DOMAIN RERANK_DOMAIN MLX_DOMAIN; do
     if ! grep -Fq "\${$var}" nginx/templates-ssl/domains.conf.template; then
       fail "$var is not registered in nginx/templates-ssl/domains.conf.template"
     fi
   done
 
-  for var in DASHBOARD_DOMAIN AI_DOMAIN OLLAMA_DOMAIN DASHBOARD_UPSTREAM AI_UPSTREAM OLLAMA_UPSTREAM DEV_DOMAIN DEV_UPSTREAM DEFAULT_UPSTREAM DEV_SSL_CERTIFICATE DEV_SSL_CERTIFICATE_KEY GLIMPSE_DOMAIN GLIMPSE_WWW_DOMAIN; do
+  for var in DASHBOARD_DOMAIN AI_DOMAIN OLLAMA_DOMAIN FRONT_DOMAIN BACK_DOMAIN DASHBOARD_UPSTREAM AI_UPSTREAM OLLAMA_UPSTREAM FRONT_UPSTREAM BACK_UPSTREAM DEV_DOMAIN DEV_UPSTREAM DEFAULT_UPSTREAM DEV_SSL_CERTIFICATE DEV_SSL_CERTIFICATE_KEY GLIMPSE_DOMAIN GLIMPSE_WWW_DOMAIN; do
     if grep -R -F "\${$var}" nginx/templates-http nginx/templates-ssl >/dev/null 2>&1; then
       fail "$var is still referenced by an nginx template"
     fi

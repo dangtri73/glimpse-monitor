@@ -23,7 +23,7 @@ server {
 
 server {
     listen 80;
-    server_name ${FRONT_DOMAIN} ${BACK_DOMAIN} ${EMBED_DOMAIN} ${RERANK_DOMAIN} ${MLX_DOMAIN};
+    server_name ${TASK_DEV_DOMAIN} ${TASK_DEV_API_DOMAIN} ${TASK_PROD_DOMAIN} ${TASK_PROD_API_DOMAIN} ${EMBED_DOMAIN} ${RERANK_DOMAIN} ${MLX_DOMAIN};
 
     return 301 https://$host$request_uri;
 }
@@ -51,7 +51,7 @@ server {
 
 server {
     listen 443 ssl;
-    server_name ${FRONT_DOMAIN};
+    server_name ${TASK_DEV_DOMAIN};
 
     ssl_certificate ${HANWHA_SSL_CERTIFICATE};
     ssl_certificate_key ${HANWHA_SSL_CERTIFICATE_KEY};
@@ -65,14 +65,14 @@ server {
     }
 
     location / {
-        proxy_pass ${FRONT_UPSTREAM};
+        proxy_pass ${TASK_DEV_UPSTREAM};
         include /etc/nginx/snippets/proxy-headers.conf;
     }
 }
 
 server {
     listen 443 ssl;
-    server_name ${BACK_DOMAIN};
+    server_name ${TASK_DEV_API_DOMAIN};
 
     ssl_certificate ${HANWHA_SSL_CERTIFICATE};
     ssl_certificate_key ${HANWHA_SSL_CERTIFICATE_KEY};
@@ -86,7 +86,49 @@ server {
     }
 
     location / {
-        proxy_pass ${BACK_UPSTREAM};
+        proxy_pass ${TASK_DEV_API_UPSTREAM};
+        include /etc/nginx/snippets/proxy-headers.conf;
+    }
+}
+
+server {
+    listen 443 ssl;
+    server_name ${TASK_PROD_DOMAIN};
+
+    ssl_certificate ${HANWHA_SSL_CERTIFICATE};
+    ssl_certificate_key ${HANWHA_SSL_CERTIFICATE_KEY};
+    include /etc/nginx/snippets/ssl.conf;
+
+    client_max_body_size 25m;
+
+    location = /nginx-health {
+        access_log off;
+        return 200 "ok\n";
+    }
+
+    location / {
+        proxy_pass ${TASK_PROD_UPSTREAM};
+        include /etc/nginx/snippets/proxy-headers.conf;
+    }
+}
+
+server {
+    listen 443 ssl;
+    server_name ${TASK_PROD_API_DOMAIN};
+
+    ssl_certificate ${HANWHA_SSL_CERTIFICATE};
+    ssl_certificate_key ${HANWHA_SSL_CERTIFICATE_KEY};
+    include /etc/nginx/snippets/ssl.conf;
+
+    client_max_body_size 25m;
+
+    location = /nginx-health {
+        access_log off;
+        return 200 "ok\n";
+    }
+
+    location / {
+        proxy_pass ${TASK_PROD_API_UPSTREAM};
         include /etc/nginx/snippets/proxy-headers.conf;
     }
 }

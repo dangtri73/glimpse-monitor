@@ -212,7 +212,7 @@ ENV_FILE=/Users/admin/glimpse-monitor-runtime/.env \
 
 ## Public Gateway Routing
 
-Keep database and broker ports bound to `127.0.0.1`. Application HTTP services that the dev gateway must reach should bind on Mac Studio with `0.0.0.0`, then the dev gateway points to `MACSTUDIO_LAN_IP`.
+Keep database and broker ports bound to `127.0.0.1`. Application HTTP services that the dev gateway must reach on Mac Studio should bind with `0.0.0.0`, then the dev gateway points to `MACSTUDIO_LAN_IP`.
 
 Mac Studio runtime `.env`:
 
@@ -230,11 +230,13 @@ MACSTUDIO_LAN_IP=<macstudio-lan-ip>
 Example public routes:
 
 ```txt
-https://front.hanwhafintech.com     -> http://${MACSTUDIO_LAN_IP}:3000
-https://back.hanwhafintech.com      -> http://${MACSTUDIO_LAN_IP}:4000
-https://embed.glimpse-go.site       -> http://${MACSTUDIO_LAN_IP}:8089
-https://rerank.glimpse-go.site      -> http://${MACSTUDIO_LAN_IP}:8090
-https://mlx.glimpse-go.site         -> http://${MACSTUDIO_LAN_IP}:8088
+https://task-dev.hanwhafintech.com      -> http://${MACSTUDIO_LAN_IP}:3000
+https://task-api-dev.hanwhafintech.com  -> http://${MACSTUDIO_LAN_IP}:4000
+https://task.hanwhafintech.com          -> http://${MACSTUDIO_LAN_IP}:3001
+https://task-api.hanwhafintech.com      -> http://${MACSTUDIO_LAN_IP}:4001
+https://embed.glimpse-go.site           -> http://${MACSTUDIO_LAN_IP}:8089
+https://rerank.glimpse-go.site          -> http://${MACSTUDIO_LAN_IP}:8090
+https://mlx.glimpse-go.site             -> http://${MACSTUDIO_LAN_IP}:8088
 ```
 
 ## GitHub Actions Plan

@@ -26,7 +26,7 @@ glimpse-go.site       -> glimpse-go.site, *.glimpse-go.site
 hanwhafintech.com     -> hanwhafintech.com, *.hanwhafintech.com
 ```
 
-`glimpse-go.site` remains the existing embed/rerank/mlx domain group. `hanwhafintech.com` is added for `front` and `back`.
+`glimpse-go.site` remains the existing embed/rerank/mlx domain group. `hanwhafintech.com` is used for the task dev and prod domain group.
 
 CI/CD pulls and restarts `dangtri73/glimpse-nginx:latest` without touching certs. The cert files remain on the dev server.
 
@@ -171,8 +171,10 @@ Required DNS records point to the dev server public IP.
 In the `hanwhafintech.com` zone:
 
 ```txt
-A    front      <dev-server-public-ip>
-A    back       <dev-server-public-ip>
+A    task-dev       <dev-server-public-ip>
+A    task-api-dev   <dev-server-public-ip>
+A    task           <dev-server-public-ip>
+A    task-api       <dev-server-public-ip>
 ```
 
 In the `glimpse-go.site` zone:
