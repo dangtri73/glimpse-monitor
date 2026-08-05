@@ -22,6 +22,7 @@ services:
       EMBED_DOMAIN: ${EMBED_DOMAIN:-embed.glimpse-go.site}
       RERANK_DOMAIN: ${RERANK_DOMAIN:-rerank.glimpse-go.site}
       MLX_DOMAIN: ${MLX_DOMAIN:-mlx.glimpse-go.site}
+      MLX_CLASSIFY_DOMAIN: ${MLX_CLASSIFY_DOMAIN:-mlx-classify.glimpse-go.site}
       MACSTUDIO_LAN_IP: "${MACSTUDIO_LAN_IP:?Set MACSTUDIO_LAN_IP in .env}"
       HANWHA_SSL_CERTIFICATE: ${HANWHA_SSL_CERTIFICATE:-/etc/ssl/cloudflare/hanwhafintech.com/fullchain.pem}
       HANWHA_SSL_CERTIFICATE_KEY: ${HANWHA_SSL_CERTIFICATE_KEY:-/etc/ssl/cloudflare/hanwhafintech.com/privkey.pem}
@@ -34,6 +35,7 @@ services:
       EMBED_UPSTREAM: "${EMBED_UPSTREAM:?Run ./deploy.sh deploy or set EMBED_UPSTREAM in .env}"
       RERANK_UPSTREAM: "${RERANK_UPSTREAM:?Run ./deploy.sh deploy or set RERANK_UPSTREAM in .env}"
       MLX_UPSTREAM: "${MLX_UPSTREAM:?Run ./deploy.sh deploy or set MLX_UPSTREAM in .env}"
+      MLX_CLASSIFY_UPSTREAM: "${MLX_CLASSIFY_UPSTREAM:?Run ./deploy.sh deploy or set MLX_CLASSIFY_UPSTREAM in .env}"
       NGINX_TEMPLATE_MODE: ${NGINX_TEMPLATE_MODE:-ssl}
     volumes:
       - ./nginx/generated:/etc/nginx/generated:ro

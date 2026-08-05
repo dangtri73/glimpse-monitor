@@ -127,7 +127,7 @@ trace_template_contract() {
     printf '  %-40s %s\n' "$mode" "$vars"
   done
 
-  for var in TASK_DEV_DOMAIN TASK_DEV_API_DOMAIN TASK_PROD_DOMAIN TASK_PROD_API_DOMAIN EMBED_DOMAIN RERANK_DOMAIN MLX_DOMAIN; do
+  for var in TASK_DEV_DOMAIN TASK_DEV_API_DOMAIN TASK_PROD_DOMAIN TASK_PROD_API_DOMAIN EMBED_DOMAIN RERANK_DOMAIN MLX_DOMAIN MLX_CLASSIFY_DOMAIN; do
     if ! grep -Fq "\${$var}" nginx/templates-ssl/domains.conf.template; then
       fail "$var is not registered in nginx/templates-ssl/domains.conf.template"
     fi

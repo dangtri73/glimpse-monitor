@@ -117,6 +117,7 @@ docker run --rm \
   -e EMBED_DOMAIN=embed.glimpse-go.site \
   -e RERANK_DOMAIN=rerank.glimpse-go.site \
   -e MLX_DOMAIN=mlx.glimpse-go.site \
+  -e MLX_CLASSIFY_DOMAIN=mlx-classify.glimpse-go.site \
   -e HANWHA_SSL_CERTIFICATE=/etc/ssl/cloudflare/hanwhafintech.com/fullchain.pem \
   -e HANWHA_SSL_CERTIFICATE_KEY=/etc/ssl/cloudflare/hanwhafintech.com/privkey.pem \
   -e GLIMPSE_SSL_CERTIFICATE=/etc/ssl/cloudflare/glimpse-go.site/fullchain.pem \
@@ -128,6 +129,7 @@ docker run --rm \
   -e EMBED_UPSTREAM=http://192.0.2.10:8089 \
   -e RERANK_UPSTREAM=http://192.0.2.10:8090 \
   -e MLX_UPSTREAM=http://192.0.2.10:8088 \
+  -e MLX_CLASSIFY_UPSTREAM=http://192.0.2.10:8092 \
   glimpse-nginx-test nginx -t
 ```
 

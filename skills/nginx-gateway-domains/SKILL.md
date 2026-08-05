@@ -43,6 +43,8 @@ TASK_PROD_DOMAIN=task.hanwhafintech.com
 TASK_PROD_UPSTREAM=http://${MACSTUDIO_LAN_IP}:3001
 TASK_PROD_API_DOMAIN=task-api.hanwhafintech.com
 TASK_PROD_API_UPSTREAM=http://${MACSTUDIO_LAN_IP}:4001
+MLX_CLASSIFY_DOMAIN=mlx-classify.glimpse-go.site
+MLX_CLASSIFY_UPSTREAM=http://${MACSTUDIO_LAN_IP}:8092
 ```
 
 For Mac Studio services, derive upstreams in `deploy.sh` from `MACSTUDIO_LAN_IP`. For services running directly on the dev Mac mini host, use `http://host.docker.internal:<port>` and keep the compose `extra_hosts` mapping.

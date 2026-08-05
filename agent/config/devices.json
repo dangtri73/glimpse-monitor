@@ -93,7 +93,8 @@
       "task-api.hanwhafintech.com",
       "embed.glimpse-go.site",
       "rerank.glimpse-go.site",
-      "mlx.glimpse-go.site"
+      "mlx.glimpse-go.site",
+      "mlx-classify.glimpse-go.site"
     ],
     "targets": [
       {

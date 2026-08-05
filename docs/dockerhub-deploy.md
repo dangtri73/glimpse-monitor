@@ -237,6 +237,7 @@ https://task-api.hanwhafintech.com      -> http://${MACSTUDIO_LAN_IP}:4001
 https://embed.glimpse-go.site           -> http://${MACSTUDIO_LAN_IP}:8089
 https://rerank.glimpse-go.site          -> http://${MACSTUDIO_LAN_IP}:8090
 https://mlx.glimpse-go.site             -> http://${MACSTUDIO_LAN_IP}:8088
+https://mlx-classify.glimpse-go.site    -> http://${MACSTUDIO_LAN_IP}:8092
 ```
 
 ## GitHub Actions Plan

@@ -186,6 +186,7 @@ sync_macstudio_upstreams() {
     "rerank.hanwhafintech.com"
   upsert_env_if_missing_or_legacy MLX_DOMAIN "mlx.glimpse-go.site" \
     "mlx.hanwhafintech.com"
+  upsert_env_if_missing_or_legacy MLX_CLASSIFY_DOMAIN "mlx-classify.glimpse-go.site"
   upsert_env_if_missing_or_legacy NGINX_TEMPLATE_MODE "ssl" \
     "dev-ssl"
   upsert_env_if_missing_or_legacy HANWHA_SSL_CERTIFICATE "/etc/ssl/cloudflare/hanwhafintech.com/fullchain.pem"
@@ -212,6 +213,7 @@ sync_macstudio_upstreams() {
   upsert_env EMBED_UPSTREAM "${EMBED_UPSTREAM:-http://$macstudio_lan_ip:8089}"
   upsert_env RERANK_UPSTREAM "${RERANK_UPSTREAM:-http://$macstudio_lan_ip:8090}"
   upsert_env MLX_UPSTREAM "${MLX_UPSTREAM:-http://$macstudio_lan_ip:8088}"
+  upsert_env MLX_CLASSIFY_UPSTREAM "${MLX_CLASSIFY_UPSTREAM:-http://$macstudio_lan_ip:8092}"
 }
 
 validate_runtime_config() {
@@ -225,6 +227,7 @@ validate_runtime_config() {
     EMBED_DOMAIN \
     RERANK_DOMAIN \
     MLX_DOMAIN \
+    MLX_CLASSIFY_DOMAIN \
     HANWHA_SSL_CERTIFICATE \
     HANWHA_SSL_CERTIFICATE_KEY \
     GLIMPSE_SSL_CERTIFICATE \
@@ -235,7 +238,8 @@ validate_runtime_config() {
     TASK_PROD_API_UPSTREAM \
     EMBED_UPSTREAM \
     RERANK_UPSTREAM \
-    MLX_UPSTREAM; do
+    MLX_UPSTREAM \
+    MLX_CLASSIFY_UPSTREAM; do
     if ! printf '%s\n' "$config" | grep -q "$key:"; then
       echo "ERROR: docker-compose.yml does not pass $key to the nginx container." >&2
       echo "Sync deploy-runtime/dev-server/nginx-docker/docker-compose.yml to this runtime directory." >&2

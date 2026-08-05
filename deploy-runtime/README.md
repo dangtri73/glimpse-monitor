@@ -114,6 +114,7 @@ task-api.hanwhafintech.com      -> http://<macstudio-lan-ip>:4001
 embed.glimpse-go.site           -> http://<macstudio-lan-ip>:8089
 rerank.glimpse-go.site          -> http://<macstudio-lan-ip>:8090
 mlx.glimpse-go.site             -> http://<macstudio-lan-ip>:8088
+mlx-classify.glimpse-go.site    -> http://<macstudio-lan-ip>:8092
 ```
 
 Set these in `/Users/tri/nginx-docker/.env`:
@@ -128,17 +129,22 @@ TASK_PROD_API_DOMAIN=task-api.hanwhafintech.com
 EMBED_DOMAIN=embed.glimpse-go.site
 RERANK_DOMAIN=rerank.glimpse-go.site
 MLX_DOMAIN=mlx.glimpse-go.site
+MLX_CLASSIFY_DOMAIN=mlx-classify.glimpse-go.site
 TASK_DEV_UPSTREAM=http://${MACSTUDIO_LAN_IP}:3000
 TASK_DEV_API_UPSTREAM=http://${MACSTUDIO_LAN_IP}:4000
 TASK_PROD_UPSTREAM=http://${MACSTUDIO_LAN_IP}:3001
 TASK_PROD_API_UPSTREAM=http://${MACSTUDIO_LAN_IP}:4001
+EMBED_UPSTREAM=http://${MACSTUDIO_LAN_IP}:8089
+RERANK_UPSTREAM=http://${MACSTUDIO_LAN_IP}:8090
+MLX_UPSTREAM=http://${MACSTUDIO_LAN_IP}:8088
+MLX_CLASSIFY_UPSTREAM=http://${MACSTUDIO_LAN_IP}:8092
 HANWHA_SSL_CERTIFICATE=/etc/ssl/cloudflare/hanwhafintech.com/fullchain.pem
 HANWHA_SSL_CERTIFICATE_KEY=/etc/ssl/cloudflare/hanwhafintech.com/privkey.pem
 GLIMPSE_SSL_CERTIFICATE=/etc/ssl/cloudflare/glimpse-go.site/fullchain.pem
 GLIMPSE_SSL_CERTIFICATE_KEY=/etc/ssl/cloudflare/glimpse-go.site/privkey.pem
 ```
 
-Run `./deploy.sh deploy` after editing `MACSTUDIO_LAN_IP`; it derives the task, embed, rerank, and MLX upstream URLs from that value.
+Run `./deploy.sh deploy` after editing `MACSTUDIO_LAN_IP`; it derives the task, embed, rerank, MLX, and MLX classify upstream URLs from that value.
 
 Install Cloudflare Origin Certificates on the dev server for both zone groups:
 
@@ -149,7 +155,7 @@ glimpse-go.site
 *.glimpse-go.site
 ```
 
-The hanwha wildcard covers `task-dev.hanwhafintech.com`, `task-api-dev.hanwhafintech.com`, `task.hanwhafintech.com`, and `task-api.hanwhafintech.com`. The glimpse wildcard keeps `embed.glimpse-go.site`, `rerank.glimpse-go.site`, and `mlx.glimpse-go.site` working.
+The hanwha wildcard covers `task-dev.hanwhafintech.com`, `task-api-dev.hanwhafintech.com`, `task.hanwhafintech.com`, and `task-api.hanwhafintech.com`. The glimpse wildcard keeps `embed.glimpse-go.site`, `rerank.glimpse-go.site`, `mlx.glimpse-go.site`, and `mlx-classify.glimpse-go.site` working.
 
 Set the same value in GitHub Actions repository variables:
 
@@ -174,6 +180,7 @@ In the `glimpse-go.site` zone:
 A    embed      <dev-server-public-ip>
 A    rerank     <dev-server-public-ip>
 A    mlx        <dev-server-public-ip>
+A    mlx-classify <dev-server-public-ip>
 ```
 
 Do not expose database or broker ports publicly through Nginx:

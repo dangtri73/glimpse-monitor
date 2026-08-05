@@ -22,6 +22,7 @@ task-api.hanwhafintech.com      -> http://<macstudio-lan-ip>:4001
 embed.glimpse-go.site           -> http://<macstudio-lan-ip>:8089
 rerank.glimpse-go.site          -> http://<macstudio-lan-ip>:8090
 mlx.glimpse-go.site             -> http://<macstudio-lan-ip>:8088
+mlx-classify.glimpse-go.site    -> http://<macstudio-lan-ip>:8092
 ```
 
 Do not route Postgres, Kafka, ClickHouse, Redis, Qdrant, Prometheus, Grafana, Adminer, or Kafka UI through public Nginx. Use SSH tunnels for those private ports.
@@ -36,6 +37,7 @@ task-api.hanwhafintech.com
 embed.glimpse-go.site
 rerank.glimpse-go.site
 mlx.glimpse-go.site
+mlx-classify.glimpse-go.site
 ```
 
 The Mac Studio upstreams are:
@@ -49,9 +51,10 @@ TASK_PROD_API_UPSTREAM=http://${MACSTUDIO_LAN_IP}:4001
 EMBED_UPSTREAM=http://${MACSTUDIO_LAN_IP}:8089
 RERANK_UPSTREAM=http://${MACSTUDIO_LAN_IP}:8090
 MLX_UPSTREAM=http://${MACSTUDIO_LAN_IP}:8088
+MLX_CLASSIFY_UPSTREAM=http://${MACSTUDIO_LAN_IP}:8092
 ```
 
-Change `MACSTUDIO_LAN_IP` in `/Users/tri/nginx-docker/.env` when the Mac Studio LAN IP changes, then run `./deploy.sh deploy`. The deploy script rewrites the task, embed, rerank, and MLX upstream URLs from that one value.
+Change `MACSTUDIO_LAN_IP` in `/Users/tri/nginx-docker/.env` when the Mac Studio LAN IP changes, then run `./deploy.sh deploy`. The deploy script rewrites the task, embed, rerank, MLX, and MLX classify upstream URLs from that one value.
 
 For GitHub Actions deploys, set the repository variable with the same value:
 
@@ -89,7 +92,7 @@ glimpse-go.site
 *.glimpse-go.site
 ```
 
-The hanwha wildcard covers `task-dev.hanwhafintech.com`, `task-api-dev.hanwhafintech.com`, `task.hanwhafintech.com`, and `task-api.hanwhafintech.com`. The glimpse wildcard keeps `embed.glimpse-go.site`, `rerank.glimpse-go.site`, and `mlx.glimpse-go.site` working.
+The hanwha wildcard covers `task-dev.hanwhafintech.com`, `task-api-dev.hanwhafintech.com`, `task.hanwhafintech.com`, and `task-api.hanwhafintech.com`. The glimpse wildcard keeps `embed.glimpse-go.site`, `rerank.glimpse-go.site`, `mlx.glimpse-go.site`, and `mlx-classify.glimpse-go.site` working.
 
 If you later use a two-label hostname such as `api.dev.hanwhafintech.com`, add `*.dev.hanwhafintech.com` to the Cloudflare Origin Certificate too. `*.hanwhafintech.com` does not cover that depth.
 
@@ -158,6 +161,7 @@ TASK_PROD_API_DOMAIN=task-api.hanwhafintech.com
 EMBED_DOMAIN=embed.glimpse-go.site
 RERANK_DOMAIN=rerank.glimpse-go.site
 MLX_DOMAIN=mlx.glimpse-go.site
+MLX_CLASSIFY_DOMAIN=mlx-classify.glimpse-go.site
 
 NGINX_IMAGE=dangtri73/glimpse-nginx:latest
 NGINX_TEMPLATE_MODE=ssl
@@ -177,6 +181,7 @@ TASK_PROD_API_UPSTREAM=http://${MACSTUDIO_LAN_IP}:4001
 EMBED_UPSTREAM=http://${MACSTUDIO_LAN_IP}:8089
 RERANK_UPSTREAM=http://${MACSTUDIO_LAN_IP}:8090
 MLX_UPSTREAM=http://${MACSTUDIO_LAN_IP}:8088
+MLX_CLASSIFY_UPSTREAM=http://${MACSTUDIO_LAN_IP}:8092
 ```
 
 ## Install The Cloudflare Origin Certificate
@@ -255,6 +260,7 @@ curl -k -I --resolve task-api.hanwhafintech.com:443:127.0.0.1 https://task-api.h
 curl -k -I --resolve embed.glimpse-go.site:443:127.0.0.1 https://embed.glimpse-go.site
 curl -k -I --resolve rerank.glimpse-go.site:443:127.0.0.1 https://rerank.glimpse-go.site
 curl -k -I --resolve mlx.glimpse-go.site:443:127.0.0.1 https://mlx.glimpse-go.site
+curl -k -I --resolve mlx-classify.glimpse-go.site:443:127.0.0.1 https://mlx-classify.glimpse-go.site
 ```
 
 Expected:
@@ -271,6 +277,7 @@ curl -I https://task-api-dev.hanwhafintech.com/api/health
 curl -I https://task.hanwhafintech.com
 curl -I https://task-api.hanwhafintech.com/api/health
 curl -I https://embed.glimpse-go.site
+curl -I https://mlx-classify.glimpse-go.site
 ```
 
 Unknown hosts should close the connection instead of falling through to the default upstream:
@@ -373,6 +380,7 @@ curl -k -I --resolve task-api.hanwhafintech.com:443:127.0.0.1 https://task-api.h
 curl -k -I --resolve embed.glimpse-go.site:443:127.0.0.1 https://embed.glimpse-go.site
 curl -k -I --resolve rerank.glimpse-go.site:443:127.0.0.1 https://rerank.glimpse-go.site
 curl -k -I --resolve mlx.glimpse-go.site:443:127.0.0.1 https://mlx.glimpse-go.site
+curl -k -I --resolve mlx-classify.glimpse-go.site:443:127.0.0.1 https://mlx-classify.glimpse-go.site
 ```
 
 Cloudflare DNS should use proxied `A` records.
@@ -392,6 +400,7 @@ In the `glimpse-go.site` zone:
 A    embed      <dev-server-public-ip>
 A    rerank     <dev-server-public-ip>
 A    mlx        <dev-server-public-ip>
+A    mlx-classify <dev-server-public-ip>
 ```
 
 Use Cloudflare SSL/TLS mode `Full (strict)` after the origin certificate is installed.

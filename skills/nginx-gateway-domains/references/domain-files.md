@@ -39,6 +39,7 @@ task-api.hanwhafintech.com      -> http://${MACSTUDIO_LAN_IP}:4001
 embed.glimpse-go.site           -> http://${MACSTUDIO_LAN_IP}:8089
 rerank.glimpse-go.site          -> http://${MACSTUDIO_LAN_IP}:8090
 mlx.glimpse-go.site             -> http://${MACSTUDIO_LAN_IP}:8088
+mlx-classify.glimpse-go.site    -> http://${MACSTUDIO_LAN_IP}:8092
 ```
 
 ## Current HTTPS Certificate
