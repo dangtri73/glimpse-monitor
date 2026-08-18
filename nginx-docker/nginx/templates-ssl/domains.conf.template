@@ -23,7 +23,7 @@ server {
 
 server {
     listen 80;
-    server_name ${TASK_DEV_DOMAIN} ${TASK_DEV_API_DOMAIN} ${TASK_PROD_DOMAIN} ${TASK_PROD_API_DOMAIN} ${H_Q1_DOMAIN} ${EMBED_DOMAIN} ${RERANK_DOMAIN} ${MLX_DOMAIN} ${MLX_CLASSIFY_DOMAIN};
+    server_name ${TASK_DEV_DOMAIN} ${TASK_DEV_API_DOMAIN} ${TASK_PROD_DOMAIN} ${TASK_PROD_API_DOMAIN} ${REPORT_ST_DOMAIN} ${REPORT_ST_API_DOMAIN} ${H_Q1_DOMAIN} ${EMBED_DOMAIN} ${RERANK_DOMAIN} ${MLX_DOMAIN} ${MLX_CLASSIFY_DOMAIN};
 
     return 301 https://$host$request_uri;
 }
@@ -129,6 +129,48 @@ server {
 
     location / {
         proxy_pass ${TASK_PROD_API_UPSTREAM};
+        include /etc/nginx/snippets/proxy-headers.conf;
+    }
+}
+
+server {
+    listen 443 ssl;
+    server_name ${REPORT_ST_DOMAIN};
+
+    ssl_certificate ${HANWHA_SSL_CERTIFICATE};
+    ssl_certificate_key ${HANWHA_SSL_CERTIFICATE_KEY};
+    include /etc/nginx/snippets/ssl.conf;
+
+    client_max_body_size 25m;
+
+    location = /nginx-health {
+        access_log off;
+        return 200 "ok\n";
+    }
+
+    location / {
+        proxy_pass ${REPORT_ST_UPSTREAM};
+        include /etc/nginx/snippets/proxy-headers.conf;
+    }
+}
+
+server {
+    listen 443 ssl;
+    server_name ${REPORT_ST_API_DOMAIN};
+
+    ssl_certificate ${HANWHA_SSL_CERTIFICATE};
+    ssl_certificate_key ${HANWHA_SSL_CERTIFICATE_KEY};
+    include /etc/nginx/snippets/ssl.conf;
+
+    client_max_body_size 25m;
+
+    location = /nginx-health {
+        access_log off;
+        return 200 "ok\n";
+    }
+
+    location / {
+        proxy_pass ${REPORT_ST_API_UPSTREAM};
         include /etc/nginx/snippets/proxy-headers.conf;
     }
 }

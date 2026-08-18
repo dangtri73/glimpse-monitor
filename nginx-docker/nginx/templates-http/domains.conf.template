@@ -80,6 +80,40 @@ server {
 
 server {
     listen 80;
+    server_name ${REPORT_ST_DOMAIN};
+
+    client_max_body_size 25m;
+
+    location = /nginx-health {
+        access_log off;
+        return 200 "ok\n";
+    }
+
+    location / {
+        proxy_pass ${REPORT_ST_UPSTREAM};
+        include /etc/nginx/snippets/proxy-headers.conf;
+    }
+}
+
+server {
+    listen 80;
+    server_name ${REPORT_ST_API_DOMAIN};
+
+    client_max_body_size 25m;
+
+    location = /nginx-health {
+        access_log off;
+        return 200 "ok\n";
+    }
+
+    location / {
+        proxy_pass ${REPORT_ST_API_UPSTREAM};
+        include /etc/nginx/snippets/proxy-headers.conf;
+    }
+}
+
+server {
+    listen 80;
     server_name ${H_Q1_DOMAIN};
 
     client_max_body_size 25m;
