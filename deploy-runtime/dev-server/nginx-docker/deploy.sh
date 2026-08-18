@@ -180,6 +180,7 @@ sync_macstudio_upstreams() {
     "back.glimpse-go.site"
   upsert_env_if_missing_or_legacy TASK_PROD_DOMAIN "task.hanwhafintech.com"
   upsert_env_if_missing_or_legacy TASK_PROD_API_DOMAIN "task-api.hanwhafintech.com"
+  upsert_env_if_missing_or_legacy H_Q1_DOMAIN "h-q1.hanwhafintech.com"
   upsert_env_if_missing_or_legacy EMBED_DOMAIN "embed.glimpse-go.site" \
     "embed.hanwhafintech.com"
   upsert_env_if_missing_or_legacy RERANK_DOMAIN "rerank.glimpse-go.site" \
@@ -210,6 +211,7 @@ sync_macstudio_upstreams() {
   upsert_env_if_missing_or_legacy TASK_PROD_API_UPSTREAM "http://$macstudio_lan_ip:4001" \
     "http://127.0.0.1:4001" \
     'http://${MACSTUDIO_LAN_IP}:4001'
+  upsert_env H_Q1_UPSTREAM "${H_Q1_UPSTREAM:-http://$macstudio_lan_ip:9000}"
   upsert_env EMBED_UPSTREAM "${EMBED_UPSTREAM:-http://$macstudio_lan_ip:8089}"
   upsert_env RERANK_UPSTREAM "${RERANK_UPSTREAM:-http://$macstudio_lan_ip:8090}"
   upsert_env MLX_UPSTREAM "${MLX_UPSTREAM:-http://$macstudio_lan_ip:8088}"
@@ -224,6 +226,7 @@ validate_runtime_config() {
     TASK_DEV_API_DOMAIN \
     TASK_PROD_DOMAIN \
     TASK_PROD_API_DOMAIN \
+    H_Q1_DOMAIN \
     EMBED_DOMAIN \
     RERANK_DOMAIN \
     MLX_DOMAIN \
@@ -236,6 +239,7 @@ validate_runtime_config() {
     TASK_DEV_API_UPSTREAM \
     TASK_PROD_UPSTREAM \
     TASK_PROD_API_UPSTREAM \
+    H_Q1_UPSTREAM \
     EMBED_UPSTREAM \
     RERANK_UPSTREAM \
     MLX_UPSTREAM \
