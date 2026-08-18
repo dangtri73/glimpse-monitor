@@ -114,10 +114,14 @@ docker run --rm \
   -e TASK_DEV_API_DOMAIN=task-api-dev.hanwhafintech.com \
   -e TASK_PROD_DOMAIN=task.hanwhafintech.com \
   -e TASK_PROD_API_DOMAIN=task-api.hanwhafintech.com \
+  -e REPORT_ST_DOMAIN=report-st.hanwhafintech.com \
+  -e REPORT_ST_API_DOMAIN=report-st-api.hanwhafintech.com \
+  -e H_Q1_DOMAIN=h-q1.hanwhafintech.com \
   -e EMBED_DOMAIN=embed.glimpse-go.site \
   -e RERANK_DOMAIN=rerank.glimpse-go.site \
   -e MLX_DOMAIN=mlx.glimpse-go.site \
   -e MLX_CLASSIFY_DOMAIN=mlx-classify.glimpse-go.site \
+  -e MLX_VLM_DOMAIN=mlx-vlm.glimpse-go.site \
   -e HANWHA_SSL_CERTIFICATE=/etc/ssl/cloudflare/hanwhafintech.com/fullchain.pem \
   -e HANWHA_SSL_CERTIFICATE_KEY=/etc/ssl/cloudflare/hanwhafintech.com/privkey.pem \
   -e GLIMPSE_SSL_CERTIFICATE=/etc/ssl/cloudflare/glimpse-go.site/fullchain.pem \
@@ -126,10 +130,14 @@ docker run --rm \
   -e TASK_DEV_API_UPSTREAM=http://192.0.2.10:4000 \
   -e TASK_PROD_UPSTREAM=http://192.0.2.10:3001 \
   -e TASK_PROD_API_UPSTREAM=http://192.0.2.10:4001 \
+  -e REPORT_ST_UPSTREAM=http://192.0.2.10:3002 \
+  -e REPORT_ST_API_UPSTREAM=http://192.0.2.10:3003 \
+  -e H_Q1_UPSTREAM=http://192.0.2.10:9000 \
   -e EMBED_UPSTREAM=http://192.0.2.10:8089 \
   -e RERANK_UPSTREAM=http://192.0.2.10:8090 \
   -e MLX_UPSTREAM=http://192.0.2.10:8088 \
   -e MLX_CLASSIFY_UPSTREAM=http://192.0.2.10:8092 \
+  -e MLX_VLM_UPSTREAM=http://192.0.2.10:8093 \
   glimpse-nginx-test nginx -t
 ```
 

@@ -234,10 +234,14 @@ https://task-dev.hanwhafintech.com      -> http://${MACSTUDIO_LAN_IP}:3000
 https://task-api-dev.hanwhafintech.com  -> http://${MACSTUDIO_LAN_IP}:4000
 https://task.hanwhafintech.com          -> http://${MACSTUDIO_LAN_IP}:3001
 https://task-api.hanwhafintech.com      -> http://${MACSTUDIO_LAN_IP}:4001
+https://report-st.hanwhafintech.com     -> http://${MACSTUDIO_LAN_IP}:3002
+https://report-st-api.hanwhafintech.com -> http://${MACSTUDIO_LAN_IP}:3003
+https://h-q1.hanwhafintech.com          -> http://${MACSTUDIO_LAN_IP}:9000
 https://embed.glimpse-go.site           -> http://${MACSTUDIO_LAN_IP}:8089
 https://rerank.glimpse-go.site          -> http://${MACSTUDIO_LAN_IP}:8090
 https://mlx.glimpse-go.site             -> http://${MACSTUDIO_LAN_IP}:8088
 https://mlx-classify.glimpse-go.site    -> http://${MACSTUDIO_LAN_IP}:8092
+https://mlx-vlm.glimpse-go.site         -> http://${MACSTUDIO_LAN_IP}:8093
 ```
 
 ## GitHub Actions Plan

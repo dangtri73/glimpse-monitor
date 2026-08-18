@@ -26,7 +26,7 @@ glimpse-go.site       -> glimpse-go.site, *.glimpse-go.site
 hanwhafintech.com     -> hanwhafintech.com, *.hanwhafintech.com
 ```
 
-`glimpse-go.site` remains the existing embed/rerank/mlx domain group, including `mlx-classify.glimpse-go.site`. `hanwhafintech.com` is used for the task dev and prod domain group.
+`glimpse-go.site` remains the existing embed/rerank/mlx domain group, including `mlx-classify.glimpse-go.site` and `mlx-vlm.glimpse-go.site`. `hanwhafintech.com` is used for the task, report staging, and H-Q1 domain group.
 
 CI/CD pulls and restarts `dangtri73/glimpse-nginx:latest` without touching certs. The cert files remain on the dev server.
 
@@ -175,6 +175,9 @@ A    task-dev       <dev-server-public-ip>
 A    task-api-dev   <dev-server-public-ip>
 A    task           <dev-server-public-ip>
 A    task-api       <dev-server-public-ip>
+A    report-st      <dev-server-public-ip>
+A    report-st-api  <dev-server-public-ip>
+A    h-q1           <dev-server-public-ip>
 ```
 
 In the `glimpse-go.site` zone:
@@ -184,6 +187,7 @@ A    embed      <dev-server-public-ip>
 A    rerank     <dev-server-public-ip>
 A    mlx        <dev-server-public-ip>
 A    mlx-classify <dev-server-public-ip>
+A    mlx-vlm      <dev-server-public-ip>
 ```
 
 ## Optional Let's Encrypt Certificate Copy

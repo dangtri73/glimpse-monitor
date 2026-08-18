@@ -94,7 +94,8 @@
       "embed.glimpse-go.site",
       "rerank.glimpse-go.site",
       "mlx.glimpse-go.site",
-      "mlx-classify.glimpse-go.site"
+      "mlx-classify.glimpse-go.site",
+      "mlx-vlm.glimpse-go.site"
     ],
     "targets": [
       {

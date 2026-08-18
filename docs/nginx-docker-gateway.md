@@ -19,10 +19,14 @@ task-dev.hanwhafintech.com      -> http://<macstudio-lan-ip>:3000
 task-api-dev.hanwhafintech.com  -> http://<macstudio-lan-ip>:4000
 task.hanwhafintech.com          -> http://<macstudio-lan-ip>:3001
 task-api.hanwhafintech.com      -> http://<macstudio-lan-ip>:4001
+report-st.hanwhafintech.com     -> http://<macstudio-lan-ip>:3002
+report-st-api.hanwhafintech.com -> http://<macstudio-lan-ip>:3003
+h-q1.hanwhafintech.com          -> http://<macstudio-lan-ip>:9000
 embed.glimpse-go.site           -> http://<macstudio-lan-ip>:8089
 rerank.glimpse-go.site          -> http://<macstudio-lan-ip>:8090
 mlx.glimpse-go.site             -> http://<macstudio-lan-ip>:8088
 mlx-classify.glimpse-go.site    -> http://<macstudio-lan-ip>:8092
+mlx-vlm.glimpse-go.site         -> http://<macstudio-lan-ip>:8093
 ```
 
 Do not route Postgres, Kafka, ClickHouse, Redis, Qdrant, Prometheus, Grafana, Adminer, or Kafka UI through public Nginx. Use SSH tunnels for those private ports.
@@ -34,10 +38,14 @@ task-dev.hanwhafintech.com
 task-api-dev.hanwhafintech.com
 task.hanwhafintech.com
 task-api.hanwhafintech.com
+report-st.hanwhafintech.com
+report-st-api.hanwhafintech.com
+h-q1.hanwhafintech.com
 embed.glimpse-go.site
 rerank.glimpse-go.site
 mlx.glimpse-go.site
 mlx-classify.glimpse-go.site
+mlx-vlm.glimpse-go.site
 ```
 
 The Mac Studio upstreams are:
@@ -48,13 +56,17 @@ TASK_DEV_UPSTREAM=http://${MACSTUDIO_LAN_IP}:3000
 TASK_DEV_API_UPSTREAM=http://${MACSTUDIO_LAN_IP}:4000
 TASK_PROD_UPSTREAM=http://${MACSTUDIO_LAN_IP}:3001
 TASK_PROD_API_UPSTREAM=http://${MACSTUDIO_LAN_IP}:4001
+REPORT_ST_UPSTREAM=http://${MACSTUDIO_LAN_IP}:3002
+REPORT_ST_API_UPSTREAM=http://${MACSTUDIO_LAN_IP}:3003
+H_Q1_UPSTREAM=http://${MACSTUDIO_LAN_IP}:9000
 EMBED_UPSTREAM=http://${MACSTUDIO_LAN_IP}:8089
 RERANK_UPSTREAM=http://${MACSTUDIO_LAN_IP}:8090
 MLX_UPSTREAM=http://${MACSTUDIO_LAN_IP}:8088
 MLX_CLASSIFY_UPSTREAM=http://${MACSTUDIO_LAN_IP}:8092
+MLX_VLM_UPSTREAM=http://${MACSTUDIO_LAN_IP}:8093
 ```
 
-Change `MACSTUDIO_LAN_IP` in `/Users/tri/nginx-docker/.env` when the Mac Studio LAN IP changes, then run `./deploy.sh deploy`. The deploy script rewrites the task, embed, rerank, MLX, and MLX classify upstream URLs from that one value.
+Change `MACSTUDIO_LAN_IP` in `/Users/tri/nginx-docker/.env` when the Mac Studio LAN IP changes, then run `./deploy.sh deploy`. The deploy script rewrites the task, report staging, H-Q1, embed, rerank, MLX, and MLX classify upstream URLs from that one value.
 
 For GitHub Actions deploys, set the repository variable with the same value:
 
@@ -92,7 +104,7 @@ glimpse-go.site
 *.glimpse-go.site
 ```
 
-The hanwha wildcard covers `task-dev.hanwhafintech.com`, `task-api-dev.hanwhafintech.com`, `task.hanwhafintech.com`, and `task-api.hanwhafintech.com`. The glimpse wildcard keeps `embed.glimpse-go.site`, `rerank.glimpse-go.site`, `mlx.glimpse-go.site`, and `mlx-classify.glimpse-go.site` working.
+The hanwha wildcard covers the listed one-label `hanwhafintech.com` routes, including both report staging hosts. The glimpse wildcard keeps `embed.glimpse-go.site`, `rerank.glimpse-go.site`, `mlx.glimpse-go.site`, `mlx-classify.glimpse-go.site`, and `mlx-vlm.glimpse-go.site` working.
 
 If you later use a two-label hostname such as `api.dev.hanwhafintech.com`, add `*.dev.hanwhafintech.com` to the Cloudflare Origin Certificate too. `*.hanwhafintech.com` does not cover that depth.
 
@@ -158,10 +170,14 @@ TASK_DEV_DOMAIN=task-dev.hanwhafintech.com
 TASK_DEV_API_DOMAIN=task-api-dev.hanwhafintech.com
 TASK_PROD_DOMAIN=task.hanwhafintech.com
 TASK_PROD_API_DOMAIN=task-api.hanwhafintech.com
+REPORT_ST_DOMAIN=report-st.hanwhafintech.com
+REPORT_ST_API_DOMAIN=report-st-api.hanwhafintech.com
+H_Q1_DOMAIN=h-q1.hanwhafintech.com
 EMBED_DOMAIN=embed.glimpse-go.site
 RERANK_DOMAIN=rerank.glimpse-go.site
 MLX_DOMAIN=mlx.glimpse-go.site
 MLX_CLASSIFY_DOMAIN=mlx-classify.glimpse-go.site
+MLX_VLM_DOMAIN=mlx-vlm.glimpse-go.site
 
 NGINX_IMAGE=dangtri73/glimpse-nginx:latest
 NGINX_TEMPLATE_MODE=ssl
@@ -178,10 +194,14 @@ TASK_DEV_UPSTREAM=http://${MACSTUDIO_LAN_IP}:3000
 TASK_DEV_API_UPSTREAM=http://${MACSTUDIO_LAN_IP}:4000
 TASK_PROD_UPSTREAM=http://${MACSTUDIO_LAN_IP}:3001
 TASK_PROD_API_UPSTREAM=http://${MACSTUDIO_LAN_IP}:4001
+REPORT_ST_UPSTREAM=http://${MACSTUDIO_LAN_IP}:3002
+REPORT_ST_API_UPSTREAM=http://${MACSTUDIO_LAN_IP}:3003
+H_Q1_UPSTREAM=http://${MACSTUDIO_LAN_IP}:9000
 EMBED_UPSTREAM=http://${MACSTUDIO_LAN_IP}:8089
 RERANK_UPSTREAM=http://${MACSTUDIO_LAN_IP}:8090
 MLX_UPSTREAM=http://${MACSTUDIO_LAN_IP}:8088
 MLX_CLASSIFY_UPSTREAM=http://${MACSTUDIO_LAN_IP}:8092
+MLX_VLM_UPSTREAM=http://${MACSTUDIO_LAN_IP}:8093
 ```
 
 ## Install The Cloudflare Origin Certificate
@@ -257,10 +277,14 @@ curl -k -I --resolve task-dev.hanwhafintech.com:443:127.0.0.1 https://task-dev.h
 curl -k -I --resolve task-api-dev.hanwhafintech.com:443:127.0.0.1 https://task-api-dev.hanwhafintech.com
 curl -k -I --resolve task.hanwhafintech.com:443:127.0.0.1 https://task.hanwhafintech.com
 curl -k -I --resolve task-api.hanwhafintech.com:443:127.0.0.1 https://task-api.hanwhafintech.com
+curl -k -I --resolve report-st.hanwhafintech.com:443:127.0.0.1 https://report-st.hanwhafintech.com
+curl -k -I --resolve report-st-api.hanwhafintech.com:443:127.0.0.1 https://report-st-api.hanwhafintech.com
+curl -k -I --resolve h-q1.hanwhafintech.com:443:127.0.0.1 https://h-q1.hanwhafintech.com
 curl -k -I --resolve embed.glimpse-go.site:443:127.0.0.1 https://embed.glimpse-go.site
 curl -k -I --resolve rerank.glimpse-go.site:443:127.0.0.1 https://rerank.glimpse-go.site
 curl -k -I --resolve mlx.glimpse-go.site:443:127.0.0.1 https://mlx.glimpse-go.site
 curl -k -I --resolve mlx-classify.glimpse-go.site:443:127.0.0.1 https://mlx-classify.glimpse-go.site
+curl -k -I --resolve mlx-vlm.glimpse-go.site:443:127.0.0.1 https://mlx-vlm.glimpse-go.site
 ```
 
 Expected:
@@ -276,8 +300,12 @@ curl -I https://task-dev.hanwhafintech.com
 curl -I https://task-api-dev.hanwhafintech.com/api/health
 curl -I https://task.hanwhafintech.com
 curl -I https://task-api.hanwhafintech.com/api/health
+curl -I https://report-st.hanwhafintech.com
+curl -I https://report-st-api.hanwhafintech.com
+curl -I https://h-q1.hanwhafintech.com
 curl -I https://embed.glimpse-go.site
 curl -I https://mlx-classify.glimpse-go.site
+curl -I https://mlx-vlm.glimpse-go.site
 ```
 
 Unknown hosts should close the connection instead of falling through to the default upstream:
@@ -377,10 +405,14 @@ curl -k -I --resolve task-dev.hanwhafintech.com:443:127.0.0.1 https://task-dev.h
 curl -k -I --resolve task-api-dev.hanwhafintech.com:443:127.0.0.1 https://task-api-dev.hanwhafintech.com
 curl -k -I --resolve task.hanwhafintech.com:443:127.0.0.1 https://task.hanwhafintech.com
 curl -k -I --resolve task-api.hanwhafintech.com:443:127.0.0.1 https://task-api.hanwhafintech.com
+curl -k -I --resolve report-st.hanwhafintech.com:443:127.0.0.1 https://report-st.hanwhafintech.com
+curl -k -I --resolve report-st-api.hanwhafintech.com:443:127.0.0.1 https://report-st-api.hanwhafintech.com
+curl -k -I --resolve h-q1.hanwhafintech.com:443:127.0.0.1 https://h-q1.hanwhafintech.com
 curl -k -I --resolve embed.glimpse-go.site:443:127.0.0.1 https://embed.glimpse-go.site
 curl -k -I --resolve rerank.glimpse-go.site:443:127.0.0.1 https://rerank.glimpse-go.site
 curl -k -I --resolve mlx.glimpse-go.site:443:127.0.0.1 https://mlx.glimpse-go.site
 curl -k -I --resolve mlx-classify.glimpse-go.site:443:127.0.0.1 https://mlx-classify.glimpse-go.site
+curl -k -I --resolve mlx-vlm.glimpse-go.site:443:127.0.0.1 https://mlx-vlm.glimpse-go.site
 ```
 
 Cloudflare DNS should use proxied `A` records.
@@ -392,6 +424,9 @@ A    task-dev       <dev-server-public-ip>
 A    task-api-dev   <dev-server-public-ip>
 A    task           <dev-server-public-ip>
 A    task-api       <dev-server-public-ip>
+A    report-st      <dev-server-public-ip>
+A    report-st-api  <dev-server-public-ip>
+A    h-q1           <dev-server-public-ip>
 ```
 
 In the `glimpse-go.site` zone:
@@ -401,6 +436,7 @@ A    embed      <dev-server-public-ip>
 A    rerank     <dev-server-public-ip>
 A    mlx        <dev-server-public-ip>
 A    mlx-classify <dev-server-public-ip>
+A    mlx-vlm      <dev-server-public-ip>
 ```
 
 Use Cloudflare SSL/TLS mode `Full (strict)` after the origin certificate is installed.

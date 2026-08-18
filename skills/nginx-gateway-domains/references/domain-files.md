@@ -36,10 +36,14 @@ task-dev.hanwhafintech.com      -> http://${MACSTUDIO_LAN_IP}:3000
 task-api-dev.hanwhafintech.com  -> http://${MACSTUDIO_LAN_IP}:4000
 task.hanwhafintech.com          -> http://${MACSTUDIO_LAN_IP}:3001
 task-api.hanwhafintech.com      -> http://${MACSTUDIO_LAN_IP}:4001
+report-st.hanwhafintech.com     -> http://${MACSTUDIO_LAN_IP}:3002
+report-st-api.hanwhafintech.com -> http://${MACSTUDIO_LAN_IP}:3003
+h-q1.hanwhafintech.com          -> http://${MACSTUDIO_LAN_IP}:9000
 embed.glimpse-go.site           -> http://${MACSTUDIO_LAN_IP}:8089
 rerank.glimpse-go.site          -> http://${MACSTUDIO_LAN_IP}:8090
 mlx.glimpse-go.site             -> http://${MACSTUDIO_LAN_IP}:8088
 mlx-classify.glimpse-go.site    -> http://${MACSTUDIO_LAN_IP}:8092
+mlx-vlm.glimpse-go.site         -> http://${MACSTUDIO_LAN_IP}:8093
 ```
 
 ## Current HTTPS Certificate
@@ -67,4 +71,4 @@ hanwhafintech.com
 *.hanwhafintech.com
 ```
 
-`*.hanwhafintech.com` covers one-label hosts such as `task-dev.hanwhafintech.com`, `task-api-dev.hanwhafintech.com`, `task.hanwhafintech.com`, and `task-api.hanwhafintech.com`. It does not cover two-label hosts such as `api.dev.hanwhafintech.com`.
+`*.hanwhafintech.com` covers every one-label Hanwha host listed above, including `report-st.hanwhafintech.com` and `report-st-api.hanwhafintech.com`. It does not cover two-label hosts such as `api.dev.hanwhafintech.com`.

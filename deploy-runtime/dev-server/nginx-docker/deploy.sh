@@ -180,6 +180,8 @@ sync_macstudio_upstreams() {
     "back.glimpse-go.site"
   upsert_env_if_missing_or_legacy TASK_PROD_DOMAIN "task.hanwhafintech.com"
   upsert_env_if_missing_or_legacy TASK_PROD_API_DOMAIN "task-api.hanwhafintech.com"
+  upsert_env_if_missing_or_legacy REPORT_ST_DOMAIN "report-st.hanwhafintech.com"
+  upsert_env_if_missing_or_legacy REPORT_ST_API_DOMAIN "report-st-api.hanwhafintech.com"
   upsert_env_if_missing_or_legacy H_Q1_DOMAIN "h-q1.hanwhafintech.com"
   upsert_env_if_missing_or_legacy EMBED_DOMAIN "embed.glimpse-go.site" \
     "embed.hanwhafintech.com"
@@ -188,6 +190,7 @@ sync_macstudio_upstreams() {
   upsert_env_if_missing_or_legacy MLX_DOMAIN "mlx.glimpse-go.site" \
     "mlx.hanwhafintech.com"
   upsert_env_if_missing_or_legacy MLX_CLASSIFY_DOMAIN "mlx-classify.glimpse-go.site"
+  upsert_env_if_missing_or_legacy MLX_VLM_DOMAIN "mlx-vlm.glimpse-go.site"
   upsert_env_if_missing_or_legacy NGINX_TEMPLATE_MODE "ssl" \
     "dev-ssl"
   upsert_env_if_missing_or_legacy HANWHA_SSL_CERTIFICATE "/etc/ssl/cloudflare/hanwhafintech.com/fullchain.pem"
@@ -211,11 +214,14 @@ sync_macstudio_upstreams() {
   upsert_env_if_missing_or_legacy TASK_PROD_API_UPSTREAM "http://$macstudio_lan_ip:4001" \
     "http://127.0.0.1:4001" \
     'http://${MACSTUDIO_LAN_IP}:4001'
+  upsert_env REPORT_ST_UPSTREAM "${REPORT_ST_UPSTREAM:-http://$macstudio_lan_ip:3002}"
+  upsert_env REPORT_ST_API_UPSTREAM "${REPORT_ST_API_UPSTREAM:-http://$macstudio_lan_ip:3003}"
   upsert_env H_Q1_UPSTREAM "${H_Q1_UPSTREAM:-http://$macstudio_lan_ip:9000}"
   upsert_env EMBED_UPSTREAM "${EMBED_UPSTREAM:-http://$macstudio_lan_ip:8089}"
   upsert_env RERANK_UPSTREAM "${RERANK_UPSTREAM:-http://$macstudio_lan_ip:8090}"
   upsert_env MLX_UPSTREAM "${MLX_UPSTREAM:-http://$macstudio_lan_ip:8088}"
   upsert_env MLX_CLASSIFY_UPSTREAM "${MLX_CLASSIFY_UPSTREAM:-http://$macstudio_lan_ip:8092}"
+  upsert_env MLX_VLM_UPSTREAM "${MLX_VLM_UPSTREAM:-http://$macstudio_lan_ip:8093}"
 }
 
 validate_runtime_config() {
@@ -226,11 +232,14 @@ validate_runtime_config() {
     TASK_DEV_API_DOMAIN \
     TASK_PROD_DOMAIN \
     TASK_PROD_API_DOMAIN \
+    REPORT_ST_DOMAIN \
+    REPORT_ST_API_DOMAIN \
     H_Q1_DOMAIN \
     EMBED_DOMAIN \
     RERANK_DOMAIN \
     MLX_DOMAIN \
     MLX_CLASSIFY_DOMAIN \
+    MLX_VLM_DOMAIN \
     HANWHA_SSL_CERTIFICATE \
     HANWHA_SSL_CERTIFICATE_KEY \
     GLIMPSE_SSL_CERTIFICATE \
@@ -239,11 +248,14 @@ validate_runtime_config() {
     TASK_DEV_API_UPSTREAM \
     TASK_PROD_UPSTREAM \
     TASK_PROD_API_UPSTREAM \
+    REPORT_ST_UPSTREAM \
+    REPORT_ST_API_UPSTREAM \
     H_Q1_UPSTREAM \
     EMBED_UPSTREAM \
     RERANK_UPSTREAM \
     MLX_UPSTREAM \
-    MLX_CLASSIFY_UPSTREAM; do
+    MLX_CLASSIFY_UPSTREAM \
+    MLX_VLM_UPSTREAM; do
     if ! printf '%s\n' "$config" | grep -q "$key:"; then
       echo "ERROR: docker-compose.yml does not pass $key to the nginx container." >&2
       echo "Sync deploy-runtime/dev-server/nginx-docker/docker-compose.yml to this runtime directory." >&2

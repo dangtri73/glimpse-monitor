@@ -43,8 +43,16 @@ TASK_PROD_DOMAIN=task.hanwhafintech.com
 TASK_PROD_UPSTREAM=http://${MACSTUDIO_LAN_IP}:3001
 TASK_PROD_API_DOMAIN=task-api.hanwhafintech.com
 TASK_PROD_API_UPSTREAM=http://${MACSTUDIO_LAN_IP}:4001
+REPORT_ST_DOMAIN=report-st.hanwhafintech.com
+REPORT_ST_UPSTREAM=http://${MACSTUDIO_LAN_IP}:3002
+REPORT_ST_API_DOMAIN=report-st-api.hanwhafintech.com
+REPORT_ST_API_UPSTREAM=http://${MACSTUDIO_LAN_IP}:3003
+H_Q1_DOMAIN=h-q1.hanwhafintech.com
+H_Q1_UPSTREAM=http://${MACSTUDIO_LAN_IP}:9000
 MLX_CLASSIFY_DOMAIN=mlx-classify.glimpse-go.site
 MLX_CLASSIFY_UPSTREAM=http://${MACSTUDIO_LAN_IP}:8092
+MLX_VLM_DOMAIN=mlx-vlm.glimpse-go.site
+MLX_VLM_UPSTREAM=http://${MACSTUDIO_LAN_IP}:8093
 ```
 
 For Mac Studio services, derive upstreams in `deploy.sh` from `MACSTUDIO_LAN_IP`. For services running directly on the dev Mac mini host, use `http://host.docker.internal:<port>` and keep the compose `extra_hosts` mapping.
@@ -70,7 +78,7 @@ certs/cloudflare/hanwhafintech.com/fullchain.pem
 certs/cloudflare/hanwhafintech.com/privkey.pem
 ```
 
-Use `GLIMPSE_SSL_CERTIFICATE` for `glimpse-go.site` routes. Use `HANWHA_SSL_CERTIFICATE` for one-label `hanwhafintech.com` subdomains such as `task-dev`, `task-api-dev`, `task`, and `task-api`.
+Use `GLIMPSE_SSL_CERTIFICATE` for `glimpse-go.site` routes. Use `HANWHA_SSL_CERTIFICATE` for all one-label `hanwhafintech.com` routes, including task, report staging, and H-Q1.
 
 Cloudflare should normally use `Full (strict)` once the origin certificate is installed.
 
