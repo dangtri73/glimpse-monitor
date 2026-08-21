@@ -183,6 +183,7 @@ sync_macstudio_upstreams() {
   upsert_env_if_missing_or_legacy REPORT_ST_DOMAIN "report-st.hanwhafintech.com"
   upsert_env_if_missing_or_legacy REPORT_ST_API_DOMAIN "report-st-api.hanwhafintech.com"
   upsert_env_if_missing_or_legacy H_Q1_DOMAIN "h-q1.hanwhafintech.com"
+  upsert_env_if_missing_or_legacy H_ASSISTANT_PLAYGROUND_DOMAIN "h-assistant-playground.hanwhafintech.com"
   upsert_env_if_missing_or_legacy EMBED_DOMAIN "embed.glimpse-go.site" \
     "embed.hanwhafintech.com"
   upsert_env_if_missing_or_legacy RERANK_DOMAIN "rerank.glimpse-go.site" \
@@ -217,6 +218,7 @@ sync_macstudio_upstreams() {
   upsert_env REPORT_ST_UPSTREAM "${REPORT_ST_UPSTREAM:-http://$macstudio_lan_ip:3002}"
   upsert_env REPORT_ST_API_UPSTREAM "${REPORT_ST_API_UPSTREAM:-http://$macstudio_lan_ip:3003}"
   upsert_env H_Q1_UPSTREAM "${H_Q1_UPSTREAM:-http://$macstudio_lan_ip:9000}"
+  upsert_env H_ASSISTANT_PLAYGROUND_UPSTREAM "${H_ASSISTANT_PLAYGROUND_UPSTREAM:-http://$macstudio_lan_ip:18100}"
   upsert_env EMBED_UPSTREAM "${EMBED_UPSTREAM:-http://$macstudio_lan_ip:8089}"
   upsert_env RERANK_UPSTREAM "${RERANK_UPSTREAM:-http://$macstudio_lan_ip:8090}"
   upsert_env MLX_UPSTREAM "${MLX_UPSTREAM:-http://$macstudio_lan_ip:8088}"
@@ -235,6 +237,7 @@ validate_runtime_config() {
     REPORT_ST_DOMAIN \
     REPORT_ST_API_DOMAIN \
     H_Q1_DOMAIN \
+    H_ASSISTANT_PLAYGROUND_DOMAIN \
     EMBED_DOMAIN \
     RERANK_DOMAIN \
     MLX_DOMAIN \
@@ -251,6 +254,7 @@ validate_runtime_config() {
     REPORT_ST_UPSTREAM \
     REPORT_ST_API_UPSTREAM \
     H_Q1_UPSTREAM \
+    H_ASSISTANT_PLAYGROUND_UPSTREAM \
     EMBED_UPSTREAM \
     RERANK_UPSTREAM \
     MLX_UPSTREAM \

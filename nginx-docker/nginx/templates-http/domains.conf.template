@@ -131,6 +131,23 @@ server {
 
 server {
     listen 80;
+    server_name ${H_ASSISTANT_PLAYGROUND_DOMAIN};
+
+    client_max_body_size 25m;
+
+    location = /nginx-health {
+        access_log off;
+        return 200 "ok\n";
+    }
+
+    location / {
+        proxy_pass ${H_ASSISTANT_PLAYGROUND_UPSTREAM};
+        include /etc/nginx/snippets/proxy-headers.conf;
+    }
+}
+
+server {
+    listen 80;
     server_name ${EMBED_DOMAIN};
 
     client_max_body_size 25m;

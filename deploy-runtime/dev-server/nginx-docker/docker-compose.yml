@@ -22,6 +22,7 @@ services:
       REPORT_ST_DOMAIN: ${REPORT_ST_DOMAIN:-report-st.hanwhafintech.com}
       REPORT_ST_API_DOMAIN: ${REPORT_ST_API_DOMAIN:-report-st-api.hanwhafintech.com}
       H_Q1_DOMAIN: ${H_Q1_DOMAIN:-h-q1.hanwhafintech.com}
+      H_ASSISTANT_PLAYGROUND_DOMAIN: ${H_ASSISTANT_PLAYGROUND_DOMAIN:-h-assistant-playground.hanwhafintech.com}
       EMBED_DOMAIN: ${EMBED_DOMAIN:-embed.glimpse-go.site}
       RERANK_DOMAIN: ${RERANK_DOMAIN:-rerank.glimpse-go.site}
       MLX_DOMAIN: ${MLX_DOMAIN:-mlx.glimpse-go.site}
@@ -39,6 +40,7 @@ services:
       REPORT_ST_UPSTREAM: "${REPORT_ST_UPSTREAM:?Run ./deploy.sh deploy or set REPORT_ST_UPSTREAM in .env}"
       REPORT_ST_API_UPSTREAM: "${REPORT_ST_API_UPSTREAM:?Run ./deploy.sh deploy or set REPORT_ST_API_UPSTREAM in .env}"
       H_Q1_UPSTREAM: "${H_Q1_UPSTREAM:?Run ./deploy.sh deploy or set H_Q1_UPSTREAM in .env}"
+      H_ASSISTANT_PLAYGROUND_UPSTREAM: "${H_ASSISTANT_PLAYGROUND_UPSTREAM:?Run ./deploy.sh deploy or set H_ASSISTANT_PLAYGROUND_UPSTREAM in .env}"
       EMBED_UPSTREAM: "${EMBED_UPSTREAM:?Run ./deploy.sh deploy or set EMBED_UPSTREAM in .env}"
       RERANK_UPSTREAM: "${RERANK_UPSTREAM:?Run ./deploy.sh deploy or set RERANK_UPSTREAM in .env}"
       MLX_UPSTREAM: "${MLX_UPSTREAM:?Run ./deploy.sh deploy or set MLX_UPSTREAM in .env}"
