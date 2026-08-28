@@ -40,7 +40,11 @@ task.hanwhafintech.com
 task-api.hanwhafintech.com
 report-st.hanwhafintech.com
 report-st-api.hanwhafintech.com
+report.hanwhafintech.com
+report-api.hanwhafintech.com
+api-rag-runtime-st.hanwhafintech.com
 h-q1.hanwhafintech.com
+h-assistant-playground.hanwhafintech.com
 embed.glimpse-go.site
 rerank.glimpse-go.site
 mlx.glimpse-go.site
@@ -58,7 +62,11 @@ TASK_PROD_UPSTREAM=http://${MACSTUDIO_LAN_IP}:3001
 TASK_PROD_API_UPSTREAM=http://${MACSTUDIO_LAN_IP}:4001
 REPORT_ST_UPSTREAM=http://${MACSTUDIO_LAN_IP}:3002
 REPORT_ST_API_UPSTREAM=http://${MACSTUDIO_LAN_IP}:3003
+REPORT_UPSTREAM=http://${MACSTUDIO_LAN_IP}:3005
+REPORT_API_UPSTREAM=http://${MACSTUDIO_LAN_IP}:3004
+API_RAG_RUNTIME_ST_UPSTREAM=http://${MACSTUDIO_LAN_IP}:18000
 H_Q1_UPSTREAM=http://${MACSTUDIO_LAN_IP}:9000
+H_ASSISTANT_PLAYGROUND_UPSTREAM=http://${MACSTUDIO_LAN_IP}:18100
 EMBED_UPSTREAM=http://${MACSTUDIO_LAN_IP}:8089
 RERANK_UPSTREAM=http://${MACSTUDIO_LAN_IP}:8090
 MLX_UPSTREAM=http://${MACSTUDIO_LAN_IP}:8088
@@ -66,7 +74,7 @@ MLX_CLASSIFY_UPSTREAM=http://${MACSTUDIO_LAN_IP}:8092
 MLX_VLM_UPSTREAM=http://${MACSTUDIO_LAN_IP}:8093
 ```
 
-Change `MACSTUDIO_LAN_IP` in `/Users/tri/nginx-docker/.env` when the Mac Studio LAN IP changes, then run `./deploy.sh deploy`. The deploy script rewrites the task, report staging, H-Q1, embed, rerank, MLX, and MLX classify upstream URLs from that one value.
+Change `MACSTUDIO_LAN_IP` in `/Users/tri/nginx-docker/.env` when the Mac Studio LAN IP changes, then run `./deploy.sh deploy`. The deploy script rewrites the task, report, RAG runtime staging API, H-Q1, assistant playground, embed, rerank, MLX, MLX classify, and MLX VLM upstream URLs from that one value.
 
 For GitHub Actions deploys, set the repository variable with the same value:
 
@@ -172,7 +180,11 @@ TASK_PROD_DOMAIN=task.hanwhafintech.com
 TASK_PROD_API_DOMAIN=task-api.hanwhafintech.com
 REPORT_ST_DOMAIN=report-st.hanwhafintech.com
 REPORT_ST_API_DOMAIN=report-st-api.hanwhafintech.com
+REPORT_DOMAIN=report.hanwhafintech.com
+REPORT_API_DOMAIN=report-api.hanwhafintech.com
+API_RAG_RUNTIME_ST_DOMAIN=api-rag-runtime-st.hanwhafintech.com
 H_Q1_DOMAIN=h-q1.hanwhafintech.com
+H_ASSISTANT_PLAYGROUND_DOMAIN=h-assistant-playground.hanwhafintech.com
 EMBED_DOMAIN=embed.glimpse-go.site
 RERANK_DOMAIN=rerank.glimpse-go.site
 MLX_DOMAIN=mlx.glimpse-go.site
@@ -196,7 +208,11 @@ TASK_PROD_UPSTREAM=http://${MACSTUDIO_LAN_IP}:3001
 TASK_PROD_API_UPSTREAM=http://${MACSTUDIO_LAN_IP}:4001
 REPORT_ST_UPSTREAM=http://${MACSTUDIO_LAN_IP}:3002
 REPORT_ST_API_UPSTREAM=http://${MACSTUDIO_LAN_IP}:3003
+REPORT_UPSTREAM=http://${MACSTUDIO_LAN_IP}:3005
+REPORT_API_UPSTREAM=http://${MACSTUDIO_LAN_IP}:3004
+API_RAG_RUNTIME_ST_UPSTREAM=http://${MACSTUDIO_LAN_IP}:18000
 H_Q1_UPSTREAM=http://${MACSTUDIO_LAN_IP}:9000
+H_ASSISTANT_PLAYGROUND_UPSTREAM=http://${MACSTUDIO_LAN_IP}:18100
 EMBED_UPSTREAM=http://${MACSTUDIO_LAN_IP}:8089
 RERANK_UPSTREAM=http://${MACSTUDIO_LAN_IP}:8090
 MLX_UPSTREAM=http://${MACSTUDIO_LAN_IP}:8088
@@ -279,7 +295,11 @@ curl -k -I --resolve task.hanwhafintech.com:443:127.0.0.1 https://task.hanwhafin
 curl -k -I --resolve task-api.hanwhafintech.com:443:127.0.0.1 https://task-api.hanwhafintech.com
 curl -k -I --resolve report-st.hanwhafintech.com:443:127.0.0.1 https://report-st.hanwhafintech.com
 curl -k -I --resolve report-st-api.hanwhafintech.com:443:127.0.0.1 https://report-st-api.hanwhafintech.com
+curl -k -I --resolve report.hanwhafintech.com:443:127.0.0.1 https://report.hanwhafintech.com
+curl -k -I --resolve report-api.hanwhafintech.com:443:127.0.0.1 https://report-api.hanwhafintech.com
+curl -k -I --resolve api-rag-runtime-st.hanwhafintech.com:443:127.0.0.1 https://api-rag-runtime-st.hanwhafintech.com
 curl -k -I --resolve h-q1.hanwhafintech.com:443:127.0.0.1 https://h-q1.hanwhafintech.com
+curl -k -I --resolve h-assistant-playground.hanwhafintech.com:443:127.0.0.1 https://h-assistant-playground.hanwhafintech.com
 curl -k -I --resolve embed.glimpse-go.site:443:127.0.0.1 https://embed.glimpse-go.site
 curl -k -I --resolve rerank.glimpse-go.site:443:127.0.0.1 https://rerank.glimpse-go.site
 curl -k -I --resolve mlx.glimpse-go.site:443:127.0.0.1 https://mlx.glimpse-go.site
@@ -302,7 +322,11 @@ curl -I https://task.hanwhafintech.com
 curl -I https://task-api.hanwhafintech.com/api/health
 curl -I https://report-st.hanwhafintech.com
 curl -I https://report-st-api.hanwhafintech.com
+curl -I https://report.hanwhafintech.com
+curl -I https://report-api.hanwhafintech.com
+curl -I https://api-rag-runtime-st.hanwhafintech.com
 curl -I https://h-q1.hanwhafintech.com
+curl -I https://h-assistant-playground.hanwhafintech.com
 curl -I https://embed.glimpse-go.site
 curl -I https://mlx-classify.glimpse-go.site
 curl -I https://mlx-vlm.glimpse-go.site
@@ -407,7 +431,11 @@ curl -k -I --resolve task.hanwhafintech.com:443:127.0.0.1 https://task.hanwhafin
 curl -k -I --resolve task-api.hanwhafintech.com:443:127.0.0.1 https://task-api.hanwhafintech.com
 curl -k -I --resolve report-st.hanwhafintech.com:443:127.0.0.1 https://report-st.hanwhafintech.com
 curl -k -I --resolve report-st-api.hanwhafintech.com:443:127.0.0.1 https://report-st-api.hanwhafintech.com
+curl -k -I --resolve report.hanwhafintech.com:443:127.0.0.1 https://report.hanwhafintech.com
+curl -k -I --resolve report-api.hanwhafintech.com:443:127.0.0.1 https://report-api.hanwhafintech.com
+curl -k -I --resolve api-rag-runtime-st.hanwhafintech.com:443:127.0.0.1 https://api-rag-runtime-st.hanwhafintech.com
 curl -k -I --resolve h-q1.hanwhafintech.com:443:127.0.0.1 https://h-q1.hanwhafintech.com
+curl -k -I --resolve h-assistant-playground.hanwhafintech.com:443:127.0.0.1 https://h-assistant-playground.hanwhafintech.com
 curl -k -I --resolve embed.glimpse-go.site:443:127.0.0.1 https://embed.glimpse-go.site
 curl -k -I --resolve rerank.glimpse-go.site:443:127.0.0.1 https://rerank.glimpse-go.site
 curl -k -I --resolve mlx.glimpse-go.site:443:127.0.0.1 https://mlx.glimpse-go.site
@@ -426,7 +454,11 @@ A    task           <dev-server-public-ip>
 A    task-api       <dev-server-public-ip>
 A    report-st      <dev-server-public-ip>
 A    report-st-api  <dev-server-public-ip>
+A    report         <dev-server-public-ip>
+A    report-api     <dev-server-public-ip>
+A    api-rag-runtime-st <dev-server-public-ip>
 A    h-q1           <dev-server-public-ip>
+A    h-assistant-playground <dev-server-public-ip>
 ```
 
 In the `glimpse-go.site` zone:

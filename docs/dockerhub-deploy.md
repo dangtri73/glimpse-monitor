@@ -236,7 +236,11 @@ https://task.hanwhafintech.com          -> http://${MACSTUDIO_LAN_IP}:3001
 https://task-api.hanwhafintech.com      -> http://${MACSTUDIO_LAN_IP}:4001
 https://report-st.hanwhafintech.com     -> http://${MACSTUDIO_LAN_IP}:3002
 https://report-st-api.hanwhafintech.com -> http://${MACSTUDIO_LAN_IP}:3003
+https://report.hanwhafintech.com        -> http://${MACSTUDIO_LAN_IP}:3005
+https://report-api.hanwhafintech.com    -> http://${MACSTUDIO_LAN_IP}:3004
+https://api-rag-runtime-st.hanwhafintech.com -> http://${MACSTUDIO_LAN_IP}:18000
 https://h-q1.hanwhafintech.com          -> http://${MACSTUDIO_LAN_IP}:9000
+https://h-assistant-playground.hanwhafintech.com -> http://${MACSTUDIO_LAN_IP}:18100
 https://embed.glimpse-go.site           -> http://${MACSTUDIO_LAN_IP}:8089
 https://rerank.glimpse-go.site          -> http://${MACSTUDIO_LAN_IP}:8090
 https://mlx.glimpse-go.site             -> http://${MACSTUDIO_LAN_IP}:8088

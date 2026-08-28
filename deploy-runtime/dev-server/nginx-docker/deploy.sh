@@ -182,6 +182,9 @@ sync_macstudio_upstreams() {
   upsert_env_if_missing_or_legacy TASK_PROD_API_DOMAIN "task-api.hanwhafintech.com"
   upsert_env_if_missing_or_legacy REPORT_ST_DOMAIN "report-st.hanwhafintech.com"
   upsert_env_if_missing_or_legacy REPORT_ST_API_DOMAIN "report-st-api.hanwhafintech.com"
+  upsert_env_if_missing_or_legacy REPORT_DOMAIN "report.hanwhafintech.com"
+  upsert_env_if_missing_or_legacy REPORT_API_DOMAIN "report-api.hanwhafintech.com"
+  upsert_env_if_missing_or_legacy API_RAG_RUNTIME_ST_DOMAIN "api-rag-runtime-st.hanwhafintech.com"
   upsert_env_if_missing_or_legacy H_Q1_DOMAIN "h-q1.hanwhafintech.com"
   upsert_env_if_missing_or_legacy H_ASSISTANT_PLAYGROUND_DOMAIN "h-assistant-playground.hanwhafintech.com"
   upsert_env_if_missing_or_legacy EMBED_DOMAIN "embed.glimpse-go.site" \
@@ -217,6 +220,9 @@ sync_macstudio_upstreams() {
     'http://${MACSTUDIO_LAN_IP}:4001'
   upsert_env REPORT_ST_UPSTREAM "${REPORT_ST_UPSTREAM:-http://$macstudio_lan_ip:3002}"
   upsert_env REPORT_ST_API_UPSTREAM "${REPORT_ST_API_UPSTREAM:-http://$macstudio_lan_ip:3003}"
+  upsert_env REPORT_UPSTREAM "${REPORT_UPSTREAM:-http://$macstudio_lan_ip:3005}"
+  upsert_env REPORT_API_UPSTREAM "${REPORT_API_UPSTREAM:-http://$macstudio_lan_ip:3004}"
+  upsert_env API_RAG_RUNTIME_ST_UPSTREAM "${API_RAG_RUNTIME_ST_UPSTREAM:-http://$macstudio_lan_ip:18000}"
   upsert_env H_Q1_UPSTREAM "${H_Q1_UPSTREAM:-http://$macstudio_lan_ip:9000}"
   upsert_env H_ASSISTANT_PLAYGROUND_UPSTREAM "${H_ASSISTANT_PLAYGROUND_UPSTREAM:-http://$macstudio_lan_ip:18100}"
   upsert_env EMBED_UPSTREAM "${EMBED_UPSTREAM:-http://$macstudio_lan_ip:8089}"
@@ -236,6 +242,9 @@ validate_runtime_config() {
     TASK_PROD_API_DOMAIN \
     REPORT_ST_DOMAIN \
     REPORT_ST_API_DOMAIN \
+    REPORT_DOMAIN \
+    REPORT_API_DOMAIN \
+    API_RAG_RUNTIME_ST_DOMAIN \
     H_Q1_DOMAIN \
     H_ASSISTANT_PLAYGROUND_DOMAIN \
     EMBED_DOMAIN \
@@ -253,6 +262,9 @@ validate_runtime_config() {
     TASK_PROD_API_UPSTREAM \
     REPORT_ST_UPSTREAM \
     REPORT_ST_API_UPSTREAM \
+    REPORT_UPSTREAM \
+    REPORT_API_UPSTREAM \
+    API_RAG_RUNTIME_ST_UPSTREAM \
     H_Q1_UPSTREAM \
     H_ASSISTANT_PLAYGROUND_UPSTREAM \
     EMBED_UPSTREAM \

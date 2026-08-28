@@ -109,7 +109,11 @@ jobs:
             -e TASK_PROD_API_DOMAIN=task-api.hanwhafintech.com \
             -e REPORT_ST_DOMAIN=report-st.hanwhafintech.com \
             -e REPORT_ST_API_DOMAIN=report-st-api.hanwhafintech.com \
+            -e REPORT_DOMAIN=report.hanwhafintech.com \
+            -e REPORT_API_DOMAIN=report-api.hanwhafintech.com \
+            -e API_RAG_RUNTIME_ST_DOMAIN=api-rag-runtime-st.hanwhafintech.com \
             -e H_Q1_DOMAIN=h-q1.hanwhafintech.com \
+            -e H_ASSISTANT_PLAYGROUND_DOMAIN=h-assistant-playground.hanwhafintech.com \
             -e EMBED_DOMAIN=embed.glimpse-go.site \
             -e RERANK_DOMAIN=rerank.glimpse-go.site \
             -e MLX_DOMAIN=mlx.glimpse-go.site \
@@ -126,7 +130,11 @@ jobs:
             -e TASK_PROD_API_UPSTREAM=http://192.0.2.10:4001 \
             -e REPORT_ST_UPSTREAM=http://192.0.2.10:3002 \
             -e REPORT_ST_API_UPSTREAM=http://192.0.2.10:3003 \
+            -e REPORT_UPSTREAM=http://192.0.2.10:3005 \
+            -e REPORT_API_UPSTREAM=http://192.0.2.10:3004 \
+            -e API_RAG_RUNTIME_ST_UPSTREAM=http://192.0.2.10:18000 \
             -e H_Q1_UPSTREAM=http://192.0.2.10:9000 \
+            -e H_ASSISTANT_PLAYGROUND_UPSTREAM=http://192.0.2.10:18100 \
             -e EMBED_UPSTREAM=http://192.0.2.10:8089 \
             -e RERANK_UPSTREAM=http://192.0.2.10:8090 \
             -e MLX_UPSTREAM=http://192.0.2.10:8088 \

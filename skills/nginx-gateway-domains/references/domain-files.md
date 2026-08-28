@@ -38,7 +38,11 @@ task.hanwhafintech.com          -> http://${MACSTUDIO_LAN_IP}:3001
 task-api.hanwhafintech.com      -> http://${MACSTUDIO_LAN_IP}:4001
 report-st.hanwhafintech.com     -> http://${MACSTUDIO_LAN_IP}:3002
 report-st-api.hanwhafintech.com -> http://${MACSTUDIO_LAN_IP}:3003
+report.hanwhafintech.com        -> http://${MACSTUDIO_LAN_IP}:3005
+report-api.hanwhafintech.com    -> http://${MACSTUDIO_LAN_IP}:3004
+api-rag-runtime-st.hanwhafintech.com -> http://${MACSTUDIO_LAN_IP}:18000
 h-q1.hanwhafintech.com          -> http://${MACSTUDIO_LAN_IP}:9000
+h-assistant-playground.hanwhafintech.com -> http://${MACSTUDIO_LAN_IP}:18100
 embed.glimpse-go.site           -> http://${MACSTUDIO_LAN_IP}:8089
 rerank.glimpse-go.site          -> http://${MACSTUDIO_LAN_IP}:8090
 mlx.glimpse-go.site             -> http://${MACSTUDIO_LAN_IP}:8088
@@ -71,4 +75,4 @@ hanwhafintech.com
 *.hanwhafintech.com
 ```
 
-`*.hanwhafintech.com` covers every one-label Hanwha host listed above, including `report-st.hanwhafintech.com` and `report-st-api.hanwhafintech.com`. It does not cover two-label hosts such as `api.dev.hanwhafintech.com`.
+`*.hanwhafintech.com` covers every one-label Hanwha host listed above, including `api-rag-runtime-st.hanwhafintech.com`. It does not cover two-label hosts such as `api.dev.hanwhafintech.com`.
